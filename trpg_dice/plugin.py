@@ -194,7 +194,7 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, args: M
     
     # 获取角色信息
     try:
-        character = await character_manager.get_character(str(event.user_id), str(event.group_id or event.user_id))
+        character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
         char_name = character.name if character else "你"
         
         response = f"🎭 {char_name} {action}"
@@ -212,7 +212,7 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
     
     try:
         # 获取角色卡
-        character = await character_manager.get_character(str(event.user_id), str(event.group_id or event.user_id))
+        character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
         
         # 查找技能
         skill_name = character_manager.find_skill_by_alias(character, skill_input)
@@ -248,7 +248,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
     try:
         if not command or command == "show":
             # 显示角色卡
-            character = await character_manager.get_character(str(event.user_id), str(event.group_id or event.user_id))
+            character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
             
             response = f"📋 角色卡: {character.name}\n"
             response += f"🎮 系统: {character.system}\n"
@@ -277,7 +277,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
                 await finish_with(matcher, "请指定角色名称")
             
             character = CharacterSheet(name=char_name)
-            await character_manager.save_character(str(event.user_id), str(event.group_id or event.user_id), character)
+            await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), character)
             
             await finish_with(matcher, f"✅ 已创建角色: {char_name}")
             
@@ -288,21 +288,21 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
             if template_name not in ["coc7", "dnd5e"]:
                 await finish_with(matcher, "❌ 支持的模板: coc7, dnd5e")
             
-            character = await character_manager.get_character(str(event.user_id), str(event.group_id or event.user_id))
+            character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
             character.system = "CoC" if template_name == "coc7" else "DnD5e"
             
-            await character_manager.save_character(str(event.user_id), str(event.group_id or event.user_id), character)
+            await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), character)
             await finish_with(matcher, f"✅ 已切换到 {template_name} 模板")
             
         elif command == "init":
             # 自动生成角色属性
-            character = await character_manager.get_character(str(event.user_id), str(event.group_id or event.user_id))
+            character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
             
             # 使用模板生成
             template_name = "coc7" if character.system == "CoC" else "dnd5e"
             new_character = character_manager.generate_character(template_name, character.name)
             
-            await character_manager.save_character(str(event.user_id), str(event.group_id or event.user_id), new_character)
+            await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), new_character)
             await finish_with(matcher, f"✅ 已自动生成角色属性: {new_character.name}")
             
         else:
@@ -325,7 +325,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
     if command == "list":
         # 列出文档
         try:
-            documents = await vector_db.list_documents(str(event.user_id), str(event.group_id or event.user_id))
+            documents = await vector_db.list_documents(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
             
             if not documents:
                 await finish_with(matcher, "📄 暂无已上传的文档")
@@ -350,7 +350,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
             results = await vector_db.search_documents(
                 query=query,
                 user_id=str(event.user_id),
-                chat_key=str(event.group_id or event.user_id),
+                chat_key=str(getattr(event, "group_id", None) or event.user_id),
                 limit=config.MAX_SEARCH_RESULTS
             )
             
@@ -414,7 +414,7 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
             filename=filename,
             text_content=text_content,
             user_id=str(event.user_id),
-            chat_key=str(event.group_id or event.user_id),
+            chat_key=str(getattr(event, "group_id", None) or event.user_id),
             document_type=doc_type
         )
         
@@ -439,7 +439,7 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Messag
         answer = await vector_db.answer_question(
             question=question,
             user_id=str(event.user_id),
-            chat_key=str(event.group_id or event.user_id)
+            chat_key=str(getattr(event, "group_id", None) or event.user_id)
         )
         
         await finish_with(matcher, f"🤖 AI回答:\n{answer}")
