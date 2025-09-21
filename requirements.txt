@@ -1,0 +1,22 @@
+# TRPG Dice Plugin Dependencies
+
+# Core dependencies (required)
+nonebot2>=2.0.0
+pydantic>=1.8.0
+
+# Nekro Agent framework (required)
+# nekro-agent  # Should be installed in the environment
+
+# Optional dependencies for full functionality
+PyPDF2>=3.0.0          # For PDF document processing
+python-docx>=0.8.0     # For Word document processing
+
+# Vector database and embeddings (handled by Nekro Agent core)
+# qdrant-client          # Provided by Nekro Agent
+# sentence-transformers  # Provided by Nekro Agent
+
+# Development dependencies (optional)
+pytest>=7.0.0          # For testing
+black>=22.0.0          # Code formatting
+isort>=5.10.0          # Import sorting
+mypy>=0.950            # Type checking
