@@ -115,11 +115,11 @@ register_prompt_injections(plugin, character_manager, vector_db, store, config)
 # ============ 骰子相关命令 ============
 
 @on_command("r", priority=5, block=True).handle()
-async def handle_dice_roll(event: MessageEvent, args: Message = CommandArg()):
+async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """基础掷骰指令"""
     expression = args.extract_plain_text().strip()
     if not expression:
-        await message.finish("请输入骰子表达式，如: r 3d6+2")
+        await finish_with(matcher, "请输入骰子表达式，如: r 3d6+2")
     
     try:
         result = DiceRoller.roll_expression(expression)
@@ -131,17 +131,17 @@ async def handle_dice_roll(event: MessageEvent, args: Message = CommandArg()):
         elif result.is_critical_failure():
             response += " 💥 大失败!"
         
-        await message.finish(response)
+        await finish_with(matcher, response)
     except ValueError as e:
-        await message.finish(f"❌ {str(e)}")
+        await finish_with(matcher, f"❌ {str(e)}")
 
 
 @on_command("rh", aliases={"rhide"}, priority=5, block=True).handle()
-async def handle_hidden_roll(event: MessageEvent, args: Message = CommandArg()):
+async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """隐藏掷骰指令"""
     expression = args.extract_plain_text().strip()
     if not expression:
-        await message.finish("请输入骰子表达式，如: rh 3d6+2")
+        await finish_with(matcher, "请输入骰子表达式，如: rh 3d6+2")
     
     try:
         result = DiceRoller.roll_expression(expression)
@@ -153,13 +153,13 @@ async def handle_hidden_roll(event: MessageEvent, args: Message = CommandArg()):
         except Exception:
             response = f"🎲 {result.format_result(show_details=False)}"
         
-        await message.finish(response)
+        await finish_with(matcher, response)
     except ValueError as e:
-        await message.finish(f"❌ {str(e)}")
+        await finish_with(matcher, f"❌ {str(e)}")
 
 
 @on_command("adv", aliases={"advantage"}, priority=5, block=True).handle()
-async def handle_advantage_roll(event: MessageEvent, args: Message = CommandArg()):
+async def handle_advantage_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """优势掷骰"""
     expression = args.extract_plain_text().strip()
     if not expression:
@@ -167,13 +167,13 @@ async def handle_advantage_roll(event: MessageEvent, args: Message = CommandArg(
     
     try:
         result = DiceRoller.roll_advantage(expression)
-        await message.finish(f"🎲 优势掷骰: {result.format_result()}")
+        await finish_with(matcher, f"🎲 优势掷骰: {result.format_result()}")
     except ValueError as e:
-        await message.finish(f"❌ {str(e)}")
+        await finish_with(matcher, f"❌ {str(e)}")
 
 
 @on_command("dis", aliases={"disadvantage"}, priority=5, block=True).handle()
-async def handle_disadvantage_roll(event: MessageEvent, args: Message = CommandArg()):
+async def handle_disadvantage_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """劣势掷骰"""
     expression = args.extract_plain_text().strip()
     if not expression:
@@ -181,17 +181,17 @@ async def handle_disadvantage_roll(event: MessageEvent, args: Message = CommandA
     
     try:
         result = DiceRoller.roll_disadvantage(expression)
-        await message.finish(f"🎲 劣势掷骰: {result.format_result()}")
+        await finish_with(matcher, f"🎲 劣势掷骰: {result.format_result()}")
     except ValueError as e:
-        await message.finish(f"❌ {str(e)}")
+        await finish_with(matcher, f"❌ {str(e)}")
 
 
 @on_command("me", priority=5, block=True).handle()
-async def handle_character_action(event: MessageEvent, args: Message = CommandArg()):
+async def handle_character_action(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """角色动作描述"""
     action = args.extract_plain_text().strip()
     if not action:
-        await message.finish("请描述你的角色动作，如: me 仔细观察房间")
+        await finish_with(matcher, "请描述你的角色动作，如: me 仔细观察房间")
     
     # 获取角色信息
     try:
@@ -199,17 +199,17 @@ async def handle_character_action(event: MessageEvent, args: Message = CommandAr
         char_name = character.name if character else "你"
         
         response = f"🎭 {char_name} {action}"
-        await message.finish(response)
+        await finish_with(matcher, response)
     except Exception:
-        await message.finish(f"🎭 你 {action}")
+        await finish_with(matcher, f"🎭 你 {action}")
 
 
 @on_command("ra", priority=5, block=True).handle()
-async def handle_skill_check(event: MessageEvent, args: Message = CommandArg()):
+async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """技能检定"""
     skill_input = args.extract_plain_text().strip()
     if not skill_input:
-        await message.finish("请输入技能名称，如: ra 侦察")
+        await finish_with(matcher, "请输入技能名称，如: ra 侦察")
     
     try:
         # 获取角色卡
@@ -234,15 +234,15 @@ async def handle_skill_check(event: MessageEvent, args: Message = CommandArg()):
             result = DiceRoller.roll_expression("d20")
             response = f"🎲 {character.name} 进行 {skill_name} 检定: {result.format_result()}"
         
-        await message.finish(response)
+        await finish_with(matcher, response)
     except Exception as e:
-        await message.finish(f"❌ 检定失败: {str(e)}")
+        await finish_with(matcher, f"❌ 检定失败: {str(e)}")
 
 
 # ============ 角色卡管理命令 ============
 
 @on_command("st", priority=5, block=True).handle()
-async def handle_character_sheet(event: MessageEvent, args: Message = CommandArg()):
+async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """角色卡管理"""
     command = args.extract_plain_text().strip()
     
@@ -269,31 +269,31 @@ async def handle_character_sheet(event: MessageEvent, args: Message = CommandArg
                     skill_strs = [f"{k}:{v}" for k, v in skill_list]
                     response += f"🔧 技能: {' '.join(skill_strs)}..."
             
-            await message.finish(response)
+            await finish_with(matcher, response)
             
         elif command.startswith("new "):
             # 创建新角色
             char_name = command[4:].strip()
             if not char_name:
-                await message.finish("请指定角色名称")
+                await finish_with(matcher, "请指定角色名称")
             
             character = CharacterSheet(name=char_name)
             await character_manager.save_character(str(event.user_id), str(event.group_id or event.user_id), character)
             
-            await message.finish(f"✅ 已创建角色: {char_name}")
+            await finish_with(matcher, f"✅ 已创建角色: {char_name}")
             
         elif command.startswith("temp "):
             # 切换模板
             template_name = command[5:].strip().lower()
             
             if template_name not in ["coc7", "dnd5e"]:
-                await message.finish("❌ 支持的模板: coc7, dnd5e")
+                await finish_with(matcher, "❌ 支持的模板: coc7, dnd5e")
             
             character = await character_manager.get_character(str(event.user_id), str(event.group_id or event.user_id))
             character.system = "CoC" if template_name == "coc7" else "DnD5e"
             
             await character_manager.save_character(str(event.user_id), str(event.group_id or event.user_id), character)
-            await message.finish(f"✅ 已切换到 {template_name} 模板")
+            await finish_with(matcher, f"✅ 已切换到 {template_name} 模板")
             
         elif command == "init":
             # 自动生成角色属性
@@ -304,22 +304,22 @@ async def handle_character_sheet(event: MessageEvent, args: Message = CommandArg
             new_character = character_manager.generate_character(template_name, character.name)
             
             await character_manager.save_character(str(event.user_id), str(event.group_id or event.user_id), new_character)
-            await message.finish(f"✅ 已自动生成角色属性: {new_character.name}")
+            await finish_with(matcher, f"✅ 已自动生成角色属性: {new_character.name}")
             
         else:
-            await message.finish("用法: st [show/new <名称>/temp <模板>/init]")
+            await finish_with(matcher, "用法: st [show/new <名称>/temp <模板>/init]")
             
     except Exception as e:
-        await message.finish(f"❌ 操作失败: {str(e)}")
+        await finish_with(matcher, f"❌ 操作失败: {str(e)}")
 
 
 # ============ 文档管理命令 ============
 
 @on_command("doc", aliases={"文档", "模组"}, priority=5, block=True).handle()
-async def handle_document_help(event: MessageEvent, args: Message = CommandArg()):
+async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """文档系统帮助"""
     if not config.ENABLE_VECTOR_DB:
-        await message.finish("❌ 文档功能未启用")
+        await finish_with(matcher, "❌ 文档功能未启用")
     
     command = args.extract_plain_text().strip()
     
@@ -329,23 +329,23 @@ async def handle_document_help(event: MessageEvent, args: Message = CommandArg()
             documents = await vector_db.list_documents(str(event.user_id), str(event.group_id or event.user_id))
             
             if not documents:
-                await message.finish("📄 暂无已上传的文档")
+                await finish_with(matcher, "📄 暂无已上传的文档")
             
             response = "📚 已上传的文档:\n"
             for i, doc in enumerate(documents, 1):
                 doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}.get(doc["document_type"], "📄")
                 response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
             
-            await message.finish(response)
+            await finish_with(matcher, response)
             
         except Exception as e:
-            await message.finish(f"❌ 获取文档列表失败: {str(e)}")
+            await finish_with(matcher, f"❌ 获取文档列表失败: {str(e)}")
     
     elif command.startswith("search "):
         # 搜索文档
         query = command[7:].strip()
         if not query:
-            await message.finish("请输入搜索关键词")
+            await finish_with(matcher, "请输入搜索关键词")
         
         try:
             results = await vector_db.search_documents(
@@ -356,17 +356,17 @@ async def handle_document_help(event: MessageEvent, args: Message = CommandArg()
             )
             
             if not results:
-                await message.finish("🔍 未找到相关内容")
+                await finish_with(matcher, "🔍 未找到相关内容")
             
             response = f"🔍 搜索 \"{query}\" 的结果:\n"
             for i, result in enumerate(results, 1):
                 response += f"{i}. {result['filename']} (相似度: {int(result['score']*100)}%)\n"
                 response += f"   {result['text'][:100]}...\n"
             
-            await message.finish(response)
+            await finish_with(matcher, response)
             
         except Exception as e:
-            await message.finish(f"❌ 搜索失败: {str(e)}")
+            await finish_with(matcher, f"❌ 搜索失败: {str(e)}")
     
     else:
         # 显示帮助
@@ -386,27 +386,27 @@ async def handle_document_help(event: MessageEvent, args: Message = CommandArg()
 • doc search 深海古城的NPC
 • ask 这个模组的主要剧情是什么"""
         
-        await message.finish(help_text)
+        await finish_with(matcher, help_text)
 
 
 @on_command("doc_text", aliases={"文档文本", "text"}, priority=5, block=True).handle()
-async def handle_upload_text_document(event: MessageEvent, args: Message = CommandArg()):
+async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """上传文本文档"""
     if not config.ENABLE_VECTOR_DB:
-        await message.finish("❌ 文档功能未启用")
+        await finish_with(matcher, "❌ 文档功能未启用")
     
     content = args.extract_plain_text().strip()
     parts = content.split(' ', 2)
     
     if len(parts) < 3:
-        await message.finish("用法: doc_text <类型> <文档名> <内容>\n类型: module/rule/story/background")
+        await finish_with(matcher, "用法: doc_text <类型> <文档名> <内容>\n类型: module/rule/story/background")
     
     doc_type = parts[0].lower()
     filename = parts[1]
     text_content = parts[2]
     
     if doc_type not in ["module", "rule", "story", "background"]:
-        await message.finish("❌ 文档类型必须是: module/rule/story/background")
+        await finish_with(matcher, "❌ 文档类型必须是: module/rule/story/background")
     
     try:
         document_id = str(uuid.uuid4())
@@ -420,21 +420,21 @@ async def handle_upload_text_document(event: MessageEvent, args: Message = Comma
         )
         
         doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}[doc_type]
-        await message.finish(f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段")
+        await finish_with(matcher, f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段")
         
     except Exception as e:
-        await message.finish(f"❌ 上传失败: {str(e)}")
+        await finish_with(matcher, f"❌ 上传失败: {str(e)}")
 
 
 @on_command("ask", aliases={"问答", "询问", "qa"}, priority=5, block=True).handle()
-async def handle_document_qa(event: MessageEvent, args: Message = CommandArg()):
+async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """智能文档问答"""
     if not config.ENABLE_VECTOR_DB:
-        await message.finish("❌ 文档功能未启用")
+        await finish_with(matcher, "❌ 文档功能未启用")
     
     question = args.extract_plain_text().strip()
     if not question:
-        await message.finish("请输入你的问题")
+        await finish_with(matcher, "请输入你的问题")
     
     try:
         answer = await vector_db.answer_question(
@@ -443,16 +443,16 @@ async def handle_document_qa(event: MessageEvent, args: Message = CommandArg()):
             chat_key=str(event.group_id or event.user_id)
         )
         
-        await message.finish(f"🤖 AI回答:\n{answer}")
+        await finish_with(matcher, f"🤖 AI回答:\n{answer}")
         
     except Exception as e:
-        await message.finish(f"❌ 问答失败: {str(e)}")
+        await finish_with(matcher, f"❌ 问答失败: {str(e)}")
 
 
 # ============ 其他实用命令 ============
 
 @on_command("jrrp", priority=5, block=True).handle()
-async def handle_daily_luck(event: MessageEvent):
+async def handle_daily_luck(matcher: Matcher, event: MessageEvent):
     """今日人品"""
     try:
         luck_value = await character_manager.get_daily_luck(str(event.user_id))
@@ -466,13 +466,13 @@ async def handle_daily_luck(event: MessageEvent):
         else:
             level = "非洲人"
         
-        await message.finish(f"🍀 今日人品值: {luck_value} ({level})")
+        await finish_with(matcher, f"🍀 今日人品值: {luck_value} ({level})")
     except Exception as e:
-        await message.finish(f"❌ 获取人品失败: {str(e)}")
+        await finish_with(matcher, f"❌ 获取人品失败: {str(e)}")
 
 
 @on_command("help", priority=5, block=True).handle()
-async def handle_help(event: MessageEvent):
+async def handle_help(matcher: Matcher, event: MessageEvent):
     """帮助信息"""
     help_text = """🎲 TRPG骰子系统 v1.0.0
 
@@ -492,7 +492,7 @@ async def handle_help(event: MessageEvent):
 
 详细说明请使用各命令的帮助功能！"""
     
-    await message.finish(help_text)
+    await finish_with(matcher, help_text)
 
 
 # ============ 清理方法 ============
