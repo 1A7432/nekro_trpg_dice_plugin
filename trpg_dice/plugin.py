@@ -20,7 +20,6 @@ from nonebot.params import CommandArg
 from pydantic import BaseModel, Field
 
 from nekro_agent.adapters.onebot_v11.matchers.command import (
-    command_guard,
     finish_with,
     on_command,
 )
