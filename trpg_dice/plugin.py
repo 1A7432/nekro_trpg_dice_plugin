@@ -111,6 +111,264 @@ vector_db = VectorDatabaseManager(
 register_prompt_injections(plugin, character_manager, vector_db, store, config)
 
 
+# ============ 文档上传沙盒方法 ============
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "upload_document", "上传并处理文档文件")
+async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "module", custom_filename: str = None) -> str:
+    """
+    处理用户上传的文档文件
+    
+    Args:
+        file_path: AI提供的沙盒文件路径
+        doc_type: 文档类型 (module/rule/story/background)
+        custom_filename: 可选的自定义文件名
+    
+    Returns:
+        处理结果信息
+    """
+    if not config.ENABLE_VECTOR_DB:
+        return "❌ 文档功能未启用"
+    
+    if doc_type not in ["module", "rule", "story", "background"]:
+        return "❌ 文档类型必须是: module/rule/story/background"
+    
+    try:
+        # 获取宿主机真实路径
+        host_path = _ctx.fs.get_file(file_path)
+        
+        if not host_path.exists():
+            return "❌ 指定的文件不存在"
+        
+        # 确定文件名
+        if custom_filename:
+            filename = custom_filename
+        else:
+            filename = host_path.stem  # 不包含扩展名的文件名
+        
+        # 读取文件内容并转换为文本
+        with open(host_path, 'rb') as f:
+            file_content = f.read()
+        
+        # 根据文件扩展名提取文本
+        original_filename = host_path.name
+        try:
+            text_content = vector_db.document_processor.extract_text_by_extension(
+                original_filename, file_content
+            )
+        except ValueError as e:
+            return f"❌ 文件处理失败: {str(e)}"
+        
+        if not text_content.strip():
+            return "❌ 文件内容为空或无法提取文本"
+        
+        # 生成文档ID并存储到向量数据库
+        document_id = str(uuid.uuid4())
+        user_id = _ctx.user_id
+        chat_key = _ctx.chat_key
+        
+        chunk_count = await vector_db.store_document(
+            document_id=document_id,
+            filename=filename,
+            text_content=text_content,
+            user_id=user_id,
+            chat_key=chat_key,
+            document_type=doc_type
+        )
+        
+        # 返回成功信息
+        doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}[doc_type]
+        return f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段\n📄 提取了 {len(text_content)} 个字符的文本内容"
+        
+    except Exception as e:
+        return f"❌ 文档上传失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "delete_document", "删除指定的文档")
+async def delete_document(_ctx: AgentCtx, filename: str) -> str:
+    """
+    删除指定的文档
+    
+    Args:
+        filename: 要删除的文档名称
+    
+    Returns:
+        删除结果信息
+    """
+    if not config.ENABLE_VECTOR_DB:
+        return "❌ 文档功能未启用"
+    
+    try:
+        user_id = _ctx.user_id
+        chat_key = _ctx.chat_key
+        
+        # 查找该文档
+        documents = await vector_db.list_documents(user_id, chat_key)
+        target_doc = None
+        
+        for doc in documents:
+            if doc["filename"] == filename:
+                target_doc = doc
+                break
+        
+        if not target_doc:
+            return f"❌ 未找到名为 \"{filename}\" 的文档"
+        
+        # 删除文档
+        success = await vector_db.delete_document(
+            target_doc["document_id"], user_id, chat_key
+        )
+        
+        if success:
+            doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}.get(target_doc["document_type"], "📄")
+            return f"✅ {doc_emoji} 文档 \"{filename}\" 已删除"
+        else:
+            return f"❌ 删除文档 \"{filename}\" 失败"
+            
+    except Exception as e:
+        return f"❌ 删除文档失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "list_my_documents", "列出我的所有文档")
+async def list_my_documents(_ctx: AgentCtx, doc_type: str = None) -> str:
+    """
+    列出用户的所有文档
+    
+    Args:
+        doc_type: 可选的文档类型过滤
+    
+    Returns:
+        文档列表信息
+    """
+    if not config.ENABLE_VECTOR_DB:
+        return "❌ 文档功能未启用"
+    
+    try:
+        user_id = _ctx.user_id
+        chat_key = _ctx.chat_key
+        
+        documents = await vector_db.list_documents(user_id, chat_key, doc_type)
+        
+        if not documents:
+            filter_text = f"类型为 {doc_type} 的" if doc_type else ""
+            return f"📄 暂无{filter_text}已上传的文档"
+        
+        response = "📚 已上传的文档:\n"
+        for i, doc in enumerate(documents, 1):
+            doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}.get(doc["document_type"], "📄")
+            response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
+            response += f"   预览: {doc['preview']}\n"
+        
+        return response
+        
+    except Exception as e:
+        return f"❌ 获取文档列表失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "search_documents", "搜索文档内容")
+async def search_documents(_ctx: AgentCtx, query: str, doc_type: str = None, limit: int = 5) -> str:
+    """
+    搜索文档内容
+    
+    Args:
+        query: 搜索查询
+        doc_type: 可选的文档类型过滤
+        limit: 返回结果数量限制
+    
+    Returns:
+        搜索结果信息
+    """
+    if not config.ENABLE_VECTOR_DB:
+        return "❌ 文档功能未启用"
+    
+    if not query.strip():
+        return "❌ 请输入搜索关键词"
+    
+    try:
+        user_id = _ctx.user_id
+        chat_key = _ctx.chat_key
+        
+        results = await vector_db.search_documents(
+            query=query,
+            user_id=user_id,
+            chat_key=chat_key,
+            document_type=doc_type,
+            limit=limit
+        )
+        
+        if not results:
+            return "🔍 未找到相关内容"
+        
+        response = f"🔍 搜索 \"{query}\" 的结果:\n"
+        for i, result in enumerate(results, 1):
+            response += f"{i}. {result['filename']} (相似度: {int(result['score']*100)}%)\n"
+            response += f"   {result['text'][:100]}...\n\n"
+        
+        return response
+        
+    except Exception as e:
+        return f"❌ 搜索失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "answer_document_question", "基于文档回答问题")
+async def answer_document_question(_ctx: AgentCtx, question: str) -> str:
+    """
+    基于上传的文档回答问题
+    
+    Args:
+        question: 用户的问题
+    
+    Returns:
+        基于文档的回答
+    """
+    if not config.ENABLE_VECTOR_DB:
+        return "❌ 文档功能未启用"
+    
+    if not question.strip():
+        return "❌ 请输入你的问题"
+    
+    try:
+        user_id = _ctx.user_id
+        chat_key = _ctx.chat_key
+        
+        # 获取相关文档上下文
+        context = await vector_db.get_document_context(question, user_id, chat_key)
+        
+        if not context:
+            return "❌ 没有找到相关的文档内容来回答这个问题"
+        
+        # 这里可以集成AI来生成更好的回答
+        # 目前先返回相关的文档片段
+        return f"🤖 基于文档的相关内容:\n{context}\n\n💡 以上是从您上传的文档中找到的相关信息"
+        
+    except Exception as e:
+        return f"❌ 问答失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "get_supported_file_types", "获取支持的文件类型")
+async def get_supported_file_types(_ctx: AgentCtx) -> str:
+    """
+    获取支持的文件类型信息
+    
+    Returns:
+        支持的文件类型列表
+    """
+    return """📄 支持的文件类型:
+• TXT - 纯文本文件
+• PDF - PDF文档 (需要PyPDF2)
+• DOCX - Microsoft Word文档 (需要python-docx)
+
+📚 文档类型:
+• module - 📘 游戏模组、剧本内容
+• rule - 📜 游戏规则、系统说明  
+• story - 📖 背景故事、剧情内容
+• background - 🌍 世界观、设定资料
+
+💡 使用方法:
+1. 直接上传文件到聊天窗口
+2. 告诉我文件类型，我会自动处理
+3. 处理完成后可以搜索和询问文档内容"""
+
+
 # ============ 骰子相关命令 ============
 
 @on_command("r", priority=5, block=True).handle()
@@ -430,6 +688,11 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
         help_text = """📚 文档系统使用说明:
 
 📤 上传文档:
+🔹 方式一：直接上传文件
+• 将PDF、DOCX、TXT文件直接拖拽到聊天窗口
+• 告诉我文档类型(module/rule/story/background)，我会自动处理
+
+🔹 方式二：文本输入
 • doc_text <类型> <文档名> <内容>
 • 类型: module(模组) / rule(规则) / story(故事) / background(背景)
 
@@ -439,9 +702,12 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
 • ask <问题> - 智能问答
 
 💡 使用示例:
-• doc_text module 深海古城 [模组内容...]
-• doc search 深海古城的NPC
-• ask 这个模组的主要剧情是什么"""
+📁 文件上传: "帮我处理这个模组PDF文件"
+📝 文本输入: doc_text module 深海古城 [模组内容...]
+🔍 搜索: doc search 深海古城的NPC
+❓ 问答: ask 这个模组的主要剧情是什么
+
+📄 支持格式: TXT, PDF, DOCX"""
         
         await finish_with(matcher, help_text)
         return
@@ -560,13 +826,15 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 • st - 角色卡管理
 
 📚 文档系统:
+• 直接上传文件 - 支持PDF/DOCX/TXT文件自动处理
 • doc - 查看文档帮助
-• ask <问题> - 智能问答
+• ask <问题> - 基于上传文档的智能问答
 
 🍀 实用功能:
 • jrrp - 今日人品
 • help - 显示帮助
 
+💡 新特性: 直接上传模组PDF文件，系统会自动解析并支持智能问答！
 详细说明请使用各命令的帮助功能！"""
     
     await finish_with(matcher, help_text)
