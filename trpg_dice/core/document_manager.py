@@ -300,10 +300,10 @@ class VectorDatabaseManager:
                 core.logger.error(f"生成文档块嵌入失败: {e}，跳过该块")
                 continue
 
-            # 创建点数据
-            point_id = f"{document_id}_{i}"
+            # 创建点数据 - 使用UUID格式作为点ID
+            chunk_point_id = str(uuid.uuid4())
             point = {
-                "id": point_id,
+                "id": chunk_point_id,
                 "vector": embedding,
                 "payload": {
                     "document_id": document_id,
