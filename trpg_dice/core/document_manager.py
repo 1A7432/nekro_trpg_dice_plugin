@@ -204,7 +204,7 @@ class VectorDatabaseManager:
                         input="test",
                         api_key=model_group_info.API_KEY,
                         base_url=model_group_info.BASE_URL,
-                        # dimensions=1536,  # 暂时移除dimensions参数
+                        dimensions=1536,
                     )
                     self.embedding_dim = len(test_embedding)
             except Exception as e:
@@ -262,18 +262,28 @@ class VectorDatabaseManager:
 
                 # 调用嵌入模型生成向量
                 core.logger.debug(f"调用嵌入模型: model={model_group_info.CHAT_MODEL}, base_url={model_group_info.BASE_URL}")
-                embedding = await gen_openai_embeddings(
-                    model=model_group_info.CHAT_MODEL,
-                    input=chunk,
-                    api_key=model_group_info.API_KEY,
-                    base_url=model_group_info.BASE_URL,
-                    # dimensions=1536,  # 暂时移除dimensions参数，看是否是这个问题
-                )
+                core.logger.debug(f"API密钥: {model_group_info.API_KEY[:10]}..." if model_group_info.API_KEY else "API密钥为空")
+
+                try:
+                    embedding = await gen_openai_embeddings(
+                        model=model_group_info.CHAT_MODEL,
+                        input=chunk,
+                        api_key=model_group_info.API_KEY,
+                        base_url=model_group_info.BASE_URL,
+                        dimensions=1536,
+                    )
+                except Exception as embed_error:
+                    core.logger.error(f"嵌入生成调用失败: {embed_error}")
+                    core.logger.error(f"模型: {model_group_info.CHAT_MODEL}")
+                    core.logger.error(f"基础URL: {model_group_info.BASE_URL}")
+                    core.logger.error(f"API密钥长度: {len(model_group_info.API_KEY) if model_group_info.API_KEY else 0}")
+                    raise
 
                 # 验证嵌入向量维度
-                if len(embedding) != 1536:
-                    core.logger.error(f"嵌入向量维度不匹配！期望: 1536, 实际: {len(embedding)}")
-                    continue
+                vector_dimension = len(embedding)
+                if vector_dimension != 1536:
+                    core.logger.warning(f"嵌入向量维度不匹配！期望: 1536, 实际: {vector_dimension}，但仍继续使用")
+                    # 不跳过，继续处理，因为有些模型可能返回不同维度
 
             except Exception as e:
                 # 如果嵌入生成失败，跳过这个块
