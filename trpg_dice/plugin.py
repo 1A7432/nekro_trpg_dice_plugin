@@ -163,14 +163,12 @@ async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "modul
         
         # 生成文档ID并存储到向量数据库
         document_id = str(uuid.uuid4())
-        user_id = _ctx.user_id
         chat_key = _ctx.chat_key
-        
+
         chunk_count = await vector_db.store_document(
             document_id=document_id,
             filename=filename,
             text_content=text_content,
-            user_id=user_id,
             chat_key=chat_key,
             document_type=doc_type
         )
@@ -198,24 +196,23 @@ async def delete_document(_ctx: AgentCtx, filename: str) -> str:
         return "❌ 文档功能未启用"
     
     try:
-        user_id = _ctx.user_id
         chat_key = _ctx.chat_key
-        
+
         # 查找该文档
-        documents = await vector_db.list_documents(user_id, chat_key)
+        documents = await vector_db.list_documents(chat_key)
         target_doc = None
-        
+
         for doc in documents:
             if doc["filename"] == filename:
                 target_doc = doc
                 break
-        
+
         if not target_doc:
             return f"❌ 未找到名为 \"{filename}\" 的文档"
-        
+
         # 删除文档
         success = await vector_db.delete_document(
-            target_doc["document_id"], user_id, chat_key
+            target_doc["document_id"], chat_key
         )
         
         if success:
@@ -243,10 +240,9 @@ async def list_my_documents(_ctx: AgentCtx, doc_type: str = None) -> str:
         return "❌ 文档功能未启用"
     
     try:
-        user_id = _ctx.user_id
         chat_key = _ctx.chat_key
-        
-        documents = await vector_db.list_documents(user_id, chat_key, doc_type)
+
+        documents = await vector_db.list_documents(chat_key, doc_type)
         
         if not documents:
             filter_text = f"类型为 {doc_type} 的" if doc_type else ""
@@ -284,12 +280,10 @@ async def search_documents(_ctx: AgentCtx, query: str, doc_type: str = None, lim
         return "❌ 请输入搜索关键词"
     
     try:
-        user_id = _ctx.user_id
         chat_key = _ctx.chat_key
-        
+
         results = await vector_db.search_documents(
             query=query,
-            user_id=user_id,
             chat_key=chat_key,
             document_type=doc_type,
             limit=limit
@@ -327,11 +321,10 @@ async def answer_document_question(_ctx: AgentCtx, question: str) -> str:
         return "❌ 请输入你的问题"
     
     try:
-        user_id = _ctx.user_id
         chat_key = _ctx.chat_key
-        
+
         # 获取相关文档上下文
-        context = await vector_db.get_document_context(question, user_id, chat_key)
+        context = await vector_db.get_document_context(question, chat_key)
         
         if not context:
             return "❌ 没有找到相关的文档内容来回答这个问题"

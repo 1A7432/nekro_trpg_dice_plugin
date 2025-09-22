@@ -195,8 +195,8 @@ class VectorDatabaseManager:
                 }
             )
     
-    async def store_document(self, document_id: str, filename: str, text_content: str, 
-                           user_id: str, chat_key: str, document_type: str = "module") -> int:
+    async def store_document(self, document_id: str, filename: str, text_content: str,
+                               chat_key: str, document_type: str = "module") -> int:
         """
         存储文档到向量数据库
         
@@ -234,7 +234,6 @@ class VectorDatabaseManager:
                     "filename": filename,
                     "chunk_index": i,
                     "text": chunk,
-                    "user_id": user_id,
                     "chat_key": chat_key,
                     "document_type": document_type,
                     "created_at": datetime.now().isoformat()
@@ -250,8 +249,8 @@ class VectorDatabaseManager:
         
         return len(chunks)
     
-    async def search_documents(self, query: str, user_id: str, chat_key: str, 
-                             document_type: Optional[str] = None, 
+    async def search_documents(self, query: str, chat_key: str,
+                             document_type: Optional[str] = None,
                              limit: int = 5) -> List[Dict[str, Any]]:
         """
         搜索文档内容
@@ -273,10 +272,9 @@ class VectorDatabaseManager:
         from nekro_agent import core
         query_embedding = await core.get_text_embedding(query)
         
-        # 构建过滤条件
+        # 构建过滤条件 - 只根据聊天环境过滤，实现群组共享
         filter_conditions = {
             "must": [
-                {"key": "user_id", "match": {"value": user_id}},
                 {"key": "chat_key", "match": {"value": chat_key}}
             ]
         }
@@ -310,20 +308,19 @@ class VectorDatabaseManager:
         
         return results
     
-    async def delete_document(self, document_id: str, user_id: str, chat_key: str) -> bool:
+    async def delete_document(self, document_id: str, chat_key: str) -> bool:
         """删除文档"""
         await self._ensure_collection_exists()
         client = await self._get_client()
         
         try:
-            # 删除该文档的所有块
+            # 删除该文档的所有块 - 只根据文档ID和聊天环境，不再检查用户ID
             await client.delete(
                 collection_name=self.collection_name,
                 points_selector={
                     "filter": {
                         "must": [
                             {"key": "document_id", "match": {"value": document_id}},
-                            {"key": "user_id", "match": {"value": user_id}},
                             {"key": "chat_key", "match": {"value": chat_key}}
                         ]
                     }
@@ -333,16 +330,15 @@ class VectorDatabaseManager:
         except Exception:
             return False
     
-    async def list_documents(self, user_id: str, chat_key: str, 
+    async def list_documents(self, chat_key: str,
                            document_type: Optional[str] = None) -> List[Dict[str, Any]]:
         """列出用户的所有文档"""
         await self._ensure_collection_exists()
         client = await self._get_client()
         
-        # 构建过滤条件
+        # 构建过滤条件 - 只根据聊天环境过滤，实现群组共享
         filter_conditions = {
             "must": [
-                {"key": "user_id", "match": {"value": user_id}},
                 {"key": "chat_key", "match": {"value": chat_key}},
                 {"key": "chunk_index", "match": {"value": 0}}  # 只获取第一个块来代表文档
             ]
@@ -374,10 +370,10 @@ class VectorDatabaseManager:
         
         return documents
     
-    async def get_document_context(self, query: str, user_id: str, chat_key: str, 
+    async def get_document_context(self, query: str, chat_key: str,
                                  max_context_length: int = 2000) -> str:
         """获取与查询相关的文档上下文"""
-        search_results = await self.search_documents(query, user_id, chat_key, limit=5)
+        search_results = await self.search_documents(query, chat_key, limit=5)
         
         if not search_results:
             return ""
@@ -400,10 +396,10 @@ class VectorDatabaseManager:
         
         return "\n".join(context_parts)
     
-    async def answer_question(self, question: str, user_id: str, chat_key: str) -> str:
+    async def answer_question(self, question: str, chat_key: str) -> str:
         """基于文档内容回答问题"""
         # 搜索相关文档
-        context = await self.get_document_context(question, user_id, chat_key)
+        context = await self.get_document_context(question, chat_key)
         
         if not context.strip():
             return "抱歉，我在您上传的文档中没有找到相关信息来回答这个问题。"
