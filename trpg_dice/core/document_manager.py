@@ -280,7 +280,7 @@ class VectorDatabaseManager:
                         input=chunk,
                         api_key=model_group_info.API_KEY,
                         base_url=model_group_info.BASE_URL,
-                        dimensions=768,
+                        dimensions=1536,
                     )
                 except Exception as embed_error:
                     core.logger.error(f"嵌入生成调用失败: {embed_error}")
