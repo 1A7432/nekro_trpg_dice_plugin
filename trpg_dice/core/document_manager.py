@@ -190,16 +190,26 @@ class VectorDatabaseManager:
             # 集合不存在，创建新集合
             # 先生成一个测试嵌入来获取维度
             try:
-                test_embedding = await gen_openai_embeddings(
-                    model="text-embedding-v3",
-                    input="test",
-                    api_key="",
-                    base_url="",
-                    dimensions=1536,
-                )
-                self.embedding_dim = len(test_embedding)
+                # 获取模型组配置信息
+                from nekro_agent.api.core import config as core_config
+
+                model_group_info = core_config.get_model_group_info("text-embedding")
+                if not model_group_info:
+                    core.logger.error("无法找到 'text-embedding' 模型组配置，使用默认维度1536")
+                    self.embedding_dim = 1536
+                else:
+                    # 调用嵌入模型生成测试向量
+                    test_embedding = await gen_openai_embeddings(
+                        model=model_group_info.CHAT_MODEL,
+                        input="test",
+                        api_key=model_group_info.API_KEY,
+                        base_url=model_group_info.BASE_URL,
+                        # dimensions=1536,  # 暂时移除dimensions参数
+                    )
+                    self.embedding_dim = len(test_embedding)
             except Exception as e:
                 # 如果嵌入生成失败，使用默认维度
+                core.logger.error(f"生成测试嵌入失败: {e}，使用默认维度1536")
                 self.embedding_dim = 1536
 
             await client.create_collection(
@@ -247,25 +257,27 @@ class VectorDatabaseManager:
 
                 model_group_info = core_config.get_model_group_info("text-embedding")
                 if not model_group_info:
-                    # 使用默认配置生成嵌入
-                    embedding = await gen_openai_embeddings(
-                        model="text-embedding-v3",
-                        input=chunk,
-                        api_key="",
-                        base_url="",
-                        dimensions=1536,
-                    )
-                else:
-                    embedding = await gen_openai_embeddings(
-                        model=model_group_info.CHAT_MODEL,
-                        input=chunk,
-                        api_key=model_group_info.API_KEY,
-                        base_url=model_group_info.BASE_URL,
-                        dimensions=1536,
-                    )
+                    core.logger.error("无法找到 'text-embedding' 模型组配置，跳过嵌入生成")
+                    continue
+
+                # 调用嵌入模型生成向量
+                core.logger.debug(f"调用嵌入模型: model={model_group_info.CHAT_MODEL}, base_url={model_group_info.BASE_URL}")
+                embedding = await gen_openai_embeddings(
+                    model=model_group_info.CHAT_MODEL,
+                    input=chunk,
+                    api_key=model_group_info.API_KEY,
+                    base_url=model_group_info.BASE_URL,
+                    # dimensions=1536,  # 暂时移除dimensions参数，看是否是这个问题
+                )
+
+                # 验证嵌入向量维度
+                if len(embedding) != 1536:
+                    core.logger.error(f"嵌入向量维度不匹配！期望: 1536, 实际: {len(embedding)}")
+                    continue
+
             except Exception as e:
                 # 如果嵌入生成失败，跳过这个块
-                core.logger.warning(f"生成文档块嵌入失败: {e}，跳过该块")
+                core.logger.error(f"生成文档块嵌入失败: {e}，跳过该块")
                 continue
 
             # 创建点数据
