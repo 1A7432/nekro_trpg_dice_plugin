@@ -248,27 +248,30 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
     try:
         if not command or command == "show":
             # 显示角色卡
-            character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
-            
-            response = f"📋 角色卡: {character.name}\n"
-            response += f"🎮 系统: {character.system}\n"
-            
-            if character.system == "CoC":
-                # COC7属性显示
-                attrs = ["STR", "CON", "DEX", "INT", "SAN", "HP"]
-                attr_strs = []
-                for attr in attrs:
-                    if attr in character.attributes:
-                        attr_strs.append(f"{attr}:{character.attributes[attr]}")
-                response += f"📊 属性: {' '.join(attr_strs)}\n"
+            try:
+                character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
                 
-                # 显示部分技能
-                if character.skills:
-                    skill_list = list(character.skills.items())[:5]
-                    skill_strs = [f"{k}:{v}" for k, v in skill_list]
-                    response += f"🔧 技能: {' '.join(skill_strs)}..."
-            
-            await finish_with(matcher, response)
+                response = f"📋 角色卡: {character.name}\n"
+                response += f"🎮 系统: {character.system}\n"
+                
+                if character.system == "CoC":
+                    # COC7属性显示
+                    attrs = ["STR", "CON", "DEX", "INT", "SAN", "HP"]
+                    attr_strs = []
+                    for attr in attrs:
+                        if attr in character.attributes:
+                            attr_strs.append(f"{attr}:{character.attributes[attr]}")
+                    response += f"📊 属性: {' '.join(attr_strs)}\n"
+                    
+                    # 显示部分技能
+                    if character.skills:
+                        skill_list = list(character.skills.items())[:5]
+                        skill_strs = [f"{k}:{v}" for k, v in skill_list]
+                        response += f"🔧 技能: {' '.join(skill_strs)}..."
+                
+                await finish_with(matcher, response)
+            except Exception as get_error:
+                await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
             return
             
         elif command.startswith("new "):
@@ -326,7 +329,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
             return
             
     except Exception as e:
-        await finish_with(matcher, f"❌ 操作失败: {str(e)}")
+        await finish_with(matcher, f"❌ 未知错误: {str(e)}")
 
 
 # ============ 文档管理命令 ============
