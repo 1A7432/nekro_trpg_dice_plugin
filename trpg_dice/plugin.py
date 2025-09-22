@@ -269,17 +269,30 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
                     response += f"🔧 技能: {' '.join(skill_strs)}..."
             
             await finish_with(matcher, response)
+            return
             
         elif command.startswith("new "):
             # 创建新角色
             char_name = command[4:].strip()
             if not char_name:
                 await finish_with(matcher, "请指定角色名称")
+                return
             
-            character = CharacterSheet(name=char_name)
-            await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), character)
+            # 清理角色名中的特殊字符
+            import re
+            char_name = re.sub(r'[<>\[\]{}]', '', char_name).strip()
             
-            await finish_with(matcher, f"✅ 已创建角色: {char_name}")
+            if not char_name:
+                await finish_with(matcher, "角色名称不能为空或只包含特殊字符")
+                return
+            
+            try:
+                character = CharacterSheet(name=char_name)
+                await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), character)
+                await finish_with(matcher, f"✅ 已创建角色: {char_name}")
+            except Exception as save_error:
+                await finish_with(matcher, f"❌ 保存角色失败: {str(save_error)}")
+            return
             
         elif command.startswith("temp "):
             # 切换模板
@@ -287,12 +300,14 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
             
             if template_name not in ["coc7", "dnd5e"]:
                 await finish_with(matcher, "❌ 支持的模板: coc7, dnd5e")
+                return
             
             character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
             character.system = "CoC" if template_name == "coc7" else "DnD5e"
             
             await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), character)
             await finish_with(matcher, f"✅ 已切换到 {template_name} 模板")
+            return
             
         elif command == "init":
             # 自动生成角色属性
@@ -304,9 +319,11 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
             
             await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), new_character)
             await finish_with(matcher, f"✅ 已自动生成角色属性: {new_character.name}")
+            return
             
         else:
             await finish_with(matcher, "用法: st [show/new <名称>/temp <模板>/init]")
+            return
             
     except Exception as e:
         await finish_with(matcher, f"❌ 操作失败: {str(e)}")
