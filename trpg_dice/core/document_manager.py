@@ -265,12 +265,13 @@ class VectorDatabaseManager:
                 core.logger.debug(f"API密钥: {model_group_info.API_KEY[:10]}..." if model_group_info.API_KEY else "API密钥为空")
 
                 try:
+                    # nekro中转站只支持768维度，不支持1536
                     embedding = await gen_openai_embeddings(
                         model=model_group_info.CHAT_MODEL,
                         input=chunk,
                         api_key=model_group_info.API_KEY,
                         base_url=model_group_info.BASE_URL,
-                        dimensions=1536,
+                        dimensions=768,
                     )
                 except Exception as embed_error:
                     core.logger.error(f"嵌入生成调用失败: {embed_error}")
