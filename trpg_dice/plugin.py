@@ -181,14 +181,10 @@ async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "modul
         if not result:
             result = f"✅ 文档上传完成（{filename}）"
 
-        # 添加调试信息
-        logger.info(f"upload_document 返回结果: {result}")
         return result
 
     except Exception as e:
         error_msg = f"❌ 文档上传失败: {str(e)}"
-        # 记录详细错误日志
-        logger.error(f"upload_document 错误详情: {str(e)}", exc_info=True)
         return error_msg
 
 
@@ -269,13 +265,10 @@ async def list_my_documents(_ctx: AgentCtx, doc_type: str = None) -> str:
         if not response:
             response = "📚 文档列表获取完成"
 
-        # 添加调试信息
-        logger.info(f"list_my_documents 返回结果长度: {len(response)}")
         return response
 
     except Exception as e:
         error_msg = f"❌ 获取文档列表失败: {str(e)}"
-        logger.error(f"list_my_documents 错误详情: {str(e)}", exc_info=True)
         return error_msg
 
 
@@ -320,13 +313,10 @@ async def search_documents(_ctx: AgentCtx, query: str, doc_type: str = None, lim
         if not response:
             response = "🔍 搜索完成，但未找到相关内容"
 
-        # 添加调试信息
-        logger.info(f"search_documents 返回结果长度: {len(response)}")
         return response
 
     except Exception as e:
         error_msg = f"❌ 搜索失败: {str(e)}"
-        logger.error(f"search_documents 错误详情: {str(e)}", exc_info=True)
         return error_msg
 
 
