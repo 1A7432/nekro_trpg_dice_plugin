@@ -119,13 +119,13 @@ class DocumentProcessor:
             raise ValueError(f"不支持的文件格式: {extension}")
 
     @staticmethod
-    def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+    def chunk_text(text: str, chunk_size: int = 2000, overlap: int = 400) -> List[str]:
         """
-        分块处理文本
+        分块处理文本 - text-embedding-v3支持8192 token长度，可以适当增大块大小
 
         Args:
             text: 要分块的文本
-            chunk_size: 每块的最大字符数
+            chunk_size: 每块的最大字符数（text-embedding-v3支持更长输入）
             overlap: 块之间的重叠字符数
 
         Returns:
@@ -167,7 +167,7 @@ class VectorDatabaseManager:
     def __init__(self, collection_name: str = "trpg_documents"):
         self.collection_name = collection_name
         self.qdrant_client = None
-        self.embedding_dim = 768  # 默认嵌入维度，会根据实际模型调整
+        self.embedding_dim = 768  # text-embedding-v3支持512, 768, 1024维度，默认使用768
         self.document_processor = DocumentProcessor()
 
     async def _get_client(self):
@@ -198,19 +198,19 @@ class VectorDatabaseManager:
                     core.logger.error("无法找到 'text-embedding' 模型组配置，使用默认维度1536")
                     self.embedding_dim = 1536
                 else:
-                    # 调用嵌入模型生成测试向量
+                    # 调用嵌入模型生成测试向量 - text-embedding-v3支持512, 768, 1024维度
                     test_embedding = await gen_openai_embeddings(
                         model=model_group_info.CHAT_MODEL,
                         input="test",
                         api_key=model_group_info.API_KEY,
                         base_url=model_group_info.BASE_URL,
-                        dimensions=1536,
+                        dimensions=768,  # 使用768维度，text-embedding-v3支持512, 768, 1024
                     )
                     self.embedding_dim = len(test_embedding)
             except Exception as e:
-                # 如果嵌入生成失败，使用默认维度
-                core.logger.error(f"生成测试嵌入失败: {e}，使用默认维度1536")
-                self.embedding_dim = 1536
+                # 如果嵌入生成失败，使用默认维度768（text-embedding-v3支持）
+                core.logger.error(f"生成测试嵌入失败: {e}，使用默认维度768")
+                self.embedding_dim = 768
 
             await client.create_collection(
                 collection_name=self.collection_name,
@@ -242,9 +242,9 @@ class VectorDatabaseManager:
         await self._ensure_collection_exists()
         client = await self._get_client()
 
-        # 分割文档
+        # 分割文档 - text-embedding-v3支持8192 token长度，可以适当增大块大小
         chunks = self.document_processor.chunk_text(
-            text_content, chunk_size=1000, overlap=200
+            text_content, chunk_size=2000, overlap=400
         )
 
         # 生成向量并存储每个块
@@ -280,11 +280,13 @@ class VectorDatabaseManager:
                     core.logger.error(f"API密钥长度: {len(model_group_info.API_KEY) if model_group_info.API_KEY else 0}")
                     raise
 
-                # 验证嵌入向量维度
+                # 验证嵌入向量维度 - text-embedding-v3支持512, 768, 1024维度
                 vector_dimension = len(embedding)
-                if vector_dimension != 1536:
-                    core.logger.warning(f"嵌入向量维度不匹配！期望: 1536, 实际: {vector_dimension}，但仍继续使用")
-                    # 不跳过，继续处理，因为有些模型可能返回不同维度
+                expected_dimensions = [512, 768, 1024]
+                if vector_dimension not in expected_dimensions:
+                    core.logger.warning(f"嵌入向量维度不在预期范围内！期望: {expected_dimensions}, 实际: {vector_dimension}")
+                else:
+                    core.logger.debug(f"嵌入向量维度正确: {vector_dimension}")
 
             except Exception as e:
                 # 如果嵌入生成失败，跳过这个块
@@ -321,7 +323,7 @@ class VectorDatabaseManager:
         limit: int = 5,
     ) -> List[Dict[str, Any]]:
         """
-        搜索文档内容
+        搜索文档内容 - text-embedding-v3优化版本
 
         Args:
             query: 搜索查询
@@ -336,20 +338,20 @@ class VectorDatabaseManager:
         await self._ensure_collection_exists()
         client = await self._get_client()
 
-        # 生成查询向量 - 使用正确的API路径
+        # 生成查询向量 - text-embedding-v3支持8192 token长度，可以处理更长查询
         try:
             # 获取模型组配置信息
             from nekro_agent.api.core import config as core_config
 
             model_group_info = core_config.get_model_group_info("text-embedding")
             if not model_group_info:
-                # 使用默认配置生成嵌入
+                # 使用默认配置生成嵌入 - text-embedding-v3支持768维度
                 query_embedding = await gen_openai_embeddings(
                     model="text-embedding-v3",
                     input=query,
                     api_key="",
                     base_url="",
-                    dimensions=1536,
+                    dimensions=768,
                 )
             else:
                 query_embedding = await gen_openai_embeddings(
@@ -357,7 +359,7 @@ class VectorDatabaseManager:
                     input=query,
                     api_key=model_group_info.API_KEY,
                     base_url=model_group_info.BASE_URL,
-                    dimensions=1536,
+                    dimensions=768,
                 )
         except Exception as e:
             # 如果嵌入生成失败，使用简单的文本匹配作为备选方案
@@ -495,14 +497,14 @@ class VectorDatabaseManager:
         return "\n".join(context_parts)
 
     async def answer_question(self, question: str, chat_key: str) -> str:
-        """基于文档内容回答问题"""
-        # 搜索相关文档
-        context = await self.get_document_context(question, chat_key)
+        """基于文档内容回答问题 - text-embedding-v3优化版本"""
+        # 搜索相关文档 - text-embedding-v3支持更长查询，提升搜索准确性
+        context = await self.get_document_context(question, chat_key, max_context_length=3000)
 
         if not context.strip():
             return "抱歉，我在您上传的文档中没有找到相关信息来回答这个问题。"
 
-        # 构建提示词
+        # 构建提示词 - text-embedding-v3提升15%效果，支持多语言
         prompt = f"""基于以下文档内容回答问题。如果文档中没有相关信息，请明确说明。
 
 问题: {question}
