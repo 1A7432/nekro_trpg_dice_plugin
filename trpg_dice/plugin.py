@@ -283,7 +283,6 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
                         response += f"🔧 技能: {' '.join(skill_strs)}..."
                 
                 await finish_with(matcher, response)
-        return
             except Exception as get_error:
                 await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
             return
@@ -372,7 +371,6 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
                 response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
             
             await finish_with(matcher, response)
-        return
             return
             
         except Exception as e:
@@ -404,7 +402,6 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
                 response += f"   {result['text'][:100]}...\n"
             
             await finish_with(matcher, response)
-        return
             return
             
         except Exception as e:
