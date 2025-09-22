@@ -248,7 +248,11 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
         await finish_with(matcher, response)
         return
     except Exception as e:
-        await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+        # 检查是否是FinishedException，如果是则让它正常传播
+        if "FinishedException" in str(type(e)):
+            raise  # 重新抛出FinishedException
+        else:
+            await finish_with(matcher, f"❌ 检定失败: {str(e)}")
         return
 
 
@@ -283,10 +287,13 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
                     response += f"🔧 技能: {' '.join(skill_strs)}..."
             
             await finish_with(matcher, response)
-            return
         except Exception as get_error:
-            await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
-            return
+            # 检查是否是FinishedException，如果是则让它正常传播
+            if "FinishedException" in str(type(get_error)):
+                raise  # 重新抛出FinishedException
+            else:
+                await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
+        return
     
     elif command.startswith("new "):
         # 创建新角色
@@ -308,7 +315,11 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
             await character_manager.save_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id), character)
             await finish_with(matcher, f"✅ 已创建角色: {char_name}")
         except Exception as save_error:
-            await finish_with(matcher, f"❌ 保存角色失败: {str(save_error)}")
+            # 检查是否是FinishedException，如果是则让它正常传播
+            if "FinishedException" in str(type(save_error)):
+                raise  # 重新抛出FinishedException
+            else:
+                await finish_with(matcher, f"❌ 保存角色失败: {str(save_error)}")
         return
     
     elif command.startswith("temp "):
@@ -372,7 +383,11 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
             return
             
         except Exception as e:
-            await finish_with(matcher, f"❌ 获取文档列表失败: {str(e)}")
+            # 检查是否是FinishedException，如果是则让它正常传播
+            if "FinishedException" in str(type(e)):
+                raise  # 重新抛出FinishedException
+            else:
+                await finish_with(matcher, f"❌ 获取文档列表失败: {str(e)}")
             return
     
     elif command.startswith("search "):
@@ -403,7 +418,11 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
             return
             
         except Exception as e:
-            await finish_with(matcher, f"❌ 搜索失败: {str(e)}")
+            # 检查是否是FinishedException，如果是则让它正常传播
+            if "FinishedException" in str(type(e)):
+                raise  # 重新抛出FinishedException
+            else:
+                await finish_with(matcher, f"❌ 搜索失败: {str(e)}")
             return
     
     else:
@@ -465,7 +484,11 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
         await finish_with(matcher, f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段")
         return
     except Exception as e:
-        await finish_with(matcher, f"❌ 上传失败: {str(e)}")
+        # 检查是否是FinishedException，如果是则让它正常传播
+        if "FinishedException" in str(type(e)):
+            raise  # 重新抛出FinishedException
+        else:
+            await finish_with(matcher, f"❌ 上传失败: {str(e)}")
         return
 
 
@@ -491,7 +514,11 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Messag
         await finish_with(matcher, f"🤖 AI回答:\n{answer}")
         return
     except Exception as e:
-        await finish_with(matcher, f"❌ 问答失败: {str(e)}")
+        # 检查是否是FinishedException，如果是则让它正常传播
+        if "FinishedException" in str(type(e)):
+            raise  # 重新抛出FinishedException
+        else:
+            await finish_with(matcher, f"❌ 问答失败: {str(e)}")
         return
 
 
@@ -513,10 +540,12 @@ async def handle_daily_luck(matcher: Matcher, event: MessageEvent):
             level = "非洲人"
         
         await finish_with(matcher, f"🍀 今日人品值: {luck_value} ({level})")
-        return
     except Exception as e:
-        await finish_with(matcher, f"❌ 获取人品失败: {str(e)}")
-        return
+        # 检查是否是FinishedException，如果是则让它正常传播
+        if "FinishedException" in str(type(e)):
+            raise  # 重新抛出FinishedException
+        else:
+            await finish_with(matcher, f"❌ 获取人品失败: {str(e)}")
 
 
 @on_command("help", priority=5, block=True).handle()
