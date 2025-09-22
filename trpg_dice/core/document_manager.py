@@ -13,6 +13,7 @@ from datetime import datetime
 
 # 从nekro_agent.api.core导入Qdrant客户端
 from nekro_agent.api import core
+from nekro_agent.services.agent.openai import gen_openai_embeddings
 
 # 可选依赖的导入
 try:
@@ -271,9 +272,33 @@ class VectorDatabaseManager:
         await self._ensure_collection_exists()
         client = await self._get_client()
         
-        # 生成查询向量
-        from nekro_agent import core
-        query_embedding = await core.get_text_embedding(query)
+        # 生成查询向量 - 使用正确的API路径
+        try:
+            # 获取模型组配置信息
+            from nekro_agent.api.core import config as core_config
+            model_group_info = core_config.get_model_group_info("text-embedding")
+            if not model_group_info:
+                # 使用默认配置生成嵌入
+                query_embedding = await gen_openai_embeddings(
+                    model="text-embedding-ada-002",
+                    input=query,
+                    api_key="",
+                    base_url="",
+                    dimensions=1536
+                )
+            else:
+                query_embedding = await gen_openai_embeddings(
+                    model=model_group_info.CHAT_MODEL,
+                    input=query,
+                    api_key=model_group_info.API_KEY,
+                    base_url=model_group_info.BASE_URL,
+                    dimensions=1536
+                )
+        except Exception as e:
+            # 如果嵌入生成失败，使用简单的文本匹配作为备选方案
+            core.logger.warning(f"生成查询嵌入失败: {e}，使用文本匹配模式")
+            # 返回空列表，让上层处理
+            return []
         
         # 构建过滤条件 - 只根据聊天环境过滤，实现群组共享
         filter_conditions = {
