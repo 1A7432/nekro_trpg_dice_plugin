@@ -132,8 +132,10 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message 
             response += " 💥 大失败!"
         
         await finish_with(matcher, response)
+        return
     except ValueError as e:
         await finish_with(matcher, f"❌ {str(e)}")
+        return
 
 
 @on_command("rh", aliases={"rhide"}, priority=5, block=True).handle()
@@ -155,8 +157,10 @@ async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, args: Messag
             response = f"🎲 {result.format_result(show_details=False)}"
         
         await finish_with(matcher, response)
+        return
     except ValueError as e:
         await finish_with(matcher, f"❌ {str(e)}")
+        return
 
 
 @on_command("adv", aliases={"advantage"}, priority=5, block=True).handle()
@@ -171,6 +175,7 @@ async def handle_advantage_roll(matcher: Matcher, event: MessageEvent, args: Mes
         await finish_with(matcher, f"🎲 优势掷骰: {result.format_result()}")
     except ValueError as e:
         await finish_with(matcher, f"❌ {str(e)}")
+        return
 
 
 @on_command("dis", aliases={"disadvantage"}, priority=5, block=True).handle()
@@ -185,6 +190,7 @@ async def handle_disadvantage_roll(matcher: Matcher, event: MessageEvent, args: 
         await finish_with(matcher, f"🎲 劣势掷骰: {result.format_result()}")
     except ValueError as e:
         await finish_with(matcher, f"❌ {str(e)}")
+        return
 
 
 @on_command("me", priority=5, block=True).handle()
@@ -202,8 +208,10 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, args: M
         
         response = f"🎭 {char_name} {action}"
         await finish_with(matcher, response)
+        return
     except Exception:
         await finish_with(matcher, f"🎭 你 {action}")
+        return
 
 
 @on_command("ra", priority=5, block=True).handle()
@@ -238,6 +246,7 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
             response = f"🎲 {character.name} 进行 {skill_name} 检定: {result.format_result()}"
         
         await finish_with(matcher, response)
+        return
     except Exception as e:
         await finish_with(matcher, f"❌ 检定失败: {str(e)}")
 
@@ -274,6 +283,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
                         response += f"🔧 技能: {' '.join(skill_strs)}..."
                 
                 await finish_with(matcher, response)
+        return
             except Exception as get_error:
                 await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
             return
@@ -362,6 +372,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
                 response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
             
             await finish_with(matcher, response)
+        return
             return
             
         except Exception as e:
@@ -393,6 +404,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
                 response += f"   {result['text'][:100]}...\n"
             
             await finish_with(matcher, response)
+        return
             return
             
         except Exception as e:
