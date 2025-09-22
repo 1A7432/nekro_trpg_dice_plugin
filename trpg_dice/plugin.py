@@ -283,9 +283,10 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
                         response += f"🔧 技能: {' '.join(skill_strs)}..."
                 
                 await finish_with(matcher, response)
+                return
             except Exception as get_error:
                 await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
-            return
+                return
             
         elif command.startswith("new "):
             # 创建新角色
@@ -343,6 +344,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
             
     except Exception as e:
         await finish_with(matcher, f"❌ 未知错误: {str(e)}")
+        return
 
 
 # ============ 文档管理命令 ============
@@ -465,9 +467,10 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
         
         doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}[doc_type]
         await finish_with(matcher, f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段")
-        
+        return
     except Exception as e:
         await finish_with(matcher, f"❌ 上传失败: {str(e)}")
+        return
 
 
 @on_command("ask", aliases={"问答", "询问", "qa"}, priority=5, block=True).handle()
@@ -475,10 +478,12 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Messag
     """智能文档问答"""
     if not config.ENABLE_VECTOR_DB:
         await finish_with(matcher, "❌ 文档功能未启用")
+        return
     
     question = args.extract_plain_text().strip()
     if not question:
         await finish_with(matcher, "请输入你的问题")
+        return
     
     try:
         answer = await vector_db.answer_question(
@@ -488,9 +493,10 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Messag
         )
         
         await finish_with(matcher, f"🤖 AI回答:\n{answer}")
-        
+        return
     except Exception as e:
         await finish_with(matcher, f"❌ 问答失败: {str(e)}")
+        return
 
 
 # ============ 其他实用命令 ============
@@ -511,8 +517,10 @@ async def handle_daily_luck(matcher: Matcher, event: MessageEvent):
             level = "非洲人"
         
         await finish_with(matcher, f"🍀 今日人品值: {luck_value} ({level})")
+        return
     except Exception as e:
         await finish_with(matcher, f"❌ 获取人品失败: {str(e)}")
+        return
 
 
 @on_command("help", priority=5, block=True).handle()
@@ -521,7 +529,7 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
     help_text = """🎲 TRPG骰子系统 v1.0.0
 
 🎯 基础指令:
-• r <表达式> - 掷骰 (如: r 3d6+2)
+• r <表达式> - 投骰 (如: r 3d6+2)
 • ra <技能> - 技能检定
 • me <动作> - 角色动作
 • st - 角色卡管理
@@ -537,6 +545,7 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 详细说明请使用各命令的帮助功能！"""
     
     await finish_with(matcher, help_text)
+    return
 
 
 # ============ 清理方法 ============
