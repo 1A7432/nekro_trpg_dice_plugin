@@ -189,10 +189,18 @@ class VectorDatabaseManager:
         except Exception:
             # 集合不存在，创建新集合
             # 先生成一个测试嵌入来获取维度
-            from nekro_agent import core
-
-            test_embedding = await core.get_text_embedding("test")
-            self.embedding_dim = len(test_embedding)
+            try:
+                test_embedding = await gen_openai_embeddings(
+                    model="text-embedding-v3",
+                    input="test",
+                    api_key="",
+                    base_url="",
+                    dimensions=1536,
+                )
+                self.embedding_dim = len(test_embedding)
+            except Exception as e:
+                # 如果嵌入生成失败，使用默认维度
+                self.embedding_dim = 1536
 
             await client.create_collection(
                 collection_name=self.collection_name,
@@ -232,10 +240,33 @@ class VectorDatabaseManager:
         # 生成向量并存储每个块
         points = []
         for i, chunk in enumerate(chunks):
-            # 生成嵌入向量
-            from nekro_agent import core
+            # 生成嵌入向量 - 使用正确的API路径
+            try:
+                # 获取模型组配置信息
+                from nekro_agent.api.core import config as core_config
 
-            embedding = await core.get_text_embedding(chunk)
+                model_group_info = core_config.get_model_group_info("text-embedding")
+                if not model_group_info:
+                    # 使用默认配置生成嵌入
+                    embedding = await gen_openai_embeddings(
+                        model="text-embedding-v3",
+                        input=chunk,
+                        api_key="",
+                        base_url="",
+                        dimensions=1536,
+                    )
+                else:
+                    embedding = await gen_openai_embeddings(
+                        model=model_group_info.CHAT_MODEL,
+                        input=chunk,
+                        api_key=model_group_info.API_KEY,
+                        base_url=model_group_info.BASE_URL,
+                        dimensions=1536,
+                    )
+            except Exception as e:
+                # 如果嵌入生成失败，跳过这个块
+                core.logger.warning(f"生成文档块嵌入失败: {e}，跳过该块")
+                continue
 
             # 创建点数据
             point_id = f"{document_id}_{i}"
