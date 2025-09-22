@@ -175,10 +175,21 @@ async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "modul
         
         # 返回成功信息
         doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}[doc_type]
-        return f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段\n📄 提取了 {len(text_content)} 个字符的文本内容"
-        
+        result = f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段\n📄 提取了 {len(text_content)} 个字符的文本内容"
+
+        # 确保总是有返回值，不会为空
+        if not result:
+            result = f"✅ 文档上传完成（{filename}）"
+
+        # 添加调试信息
+        logger.info(f"upload_document 返回结果: {result}")
+        return result
+
     except Exception as e:
-        return f"❌ 文档上传失败: {str(e)}"
+        error_msg = f"❌ 文档上传失败: {str(e)}"
+        # 记录详细错误日志
+        logger.error(f"upload_document 错误详情: {str(e)}", exc_info=True)
+        return error_msg
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "delete_document", "删除指定的文档")
@@ -253,11 +264,19 @@ async def list_my_documents(_ctx: AgentCtx, doc_type: str = None) -> str:
             doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}.get(doc["document_type"], "📄")
             response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
             response += f"   预览: {doc['preview']}\n"
-        
+
+        # 确保总是有返回值，不会为空
+        if not response:
+            response = "📚 文档列表获取完成"
+
+        # 添加调试信息
+        logger.info(f"list_my_documents 返回结果长度: {len(response)}")
         return response
-        
+
     except Exception as e:
-        return f"❌ 获取文档列表失败: {str(e)}"
+        error_msg = f"❌ 获取文档列表失败: {str(e)}"
+        logger.error(f"list_my_documents 错误详情: {str(e)}", exc_info=True)
+        return error_msg
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "search_documents", "搜索文档内容")
@@ -296,11 +315,19 @@ async def search_documents(_ctx: AgentCtx, query: str, doc_type: str = None, lim
         for i, result in enumerate(results, 1):
             response += f"{i}. {result['filename']} (相似度: {int(result['score']*100)}%)\n"
             response += f"   {result['text'][:100]}...\n\n"
-        
+
+        # 确保总是有返回值，不会为空
+        if not response:
+            response = "🔍 搜索完成，但未找到相关内容"
+
+        # 添加调试信息
+        logger.info(f"search_documents 返回结果长度: {len(response)}")
         return response
-        
+
     except Exception as e:
-        return f"❌ 搜索失败: {str(e)}"
+        error_msg = f"❌ 搜索失败: {str(e)}"
+        logger.error(f"search_documents 错误详情: {str(e)}", exc_info=True)
+        return error_msg
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "answer_document_question", "基于文档回答问题")
