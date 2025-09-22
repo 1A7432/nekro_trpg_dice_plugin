@@ -11,6 +11,9 @@ import asyncio
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 
+# 从nekro_agent.api.core导入Qdrant客户端
+from nekro_agent.api import core
+
 # 可选依赖的导入
 try:
     import docx  # python-docx for Word documents
@@ -167,9 +170,9 @@ class VectorDatabaseManager:
     async def _get_client(self):
         """获取Qdrant客户端"""
         if self.qdrant_client is None:
-            # 这里需要根据实际的nekro agent core模块来获取客户端
-            from nekro_agent import core
             self.qdrant_client = await core.get_qdrant_client()
+            if not self.qdrant_client:
+                raise ConnectionError("无法获取Qdrant客户端实例！请检查Agent核心配置。")
         return self.qdrant_client
     
     async def _ensure_collection_exists(self):
