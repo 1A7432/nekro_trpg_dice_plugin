@@ -119,6 +119,7 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message 
     expression = args.extract_plain_text().strip()
     if not expression:
         await finish_with(matcher, "请输入骰子表达式，如: r 3d6+2")
+        return
     
     try:
         result = DiceRoller.roll_expression(expression)
@@ -141,6 +142,7 @@ async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, args: Messag
     expression = args.extract_plain_text().strip()
     if not expression:
         await finish_with(matcher, "请输入骰子表达式，如: rh 3d6+2")
+        return
     
     try:
         result = DiceRoller.roll_expression(expression)
@@ -191,6 +193,7 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, args: M
     action = args.extract_plain_text().strip()
     if not action:
         await finish_with(matcher, "请描述你的角色动作，如: me 仔细观察房间")
+        return
     
     # 获取角色信息
     try:
@@ -209,6 +212,7 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
     skill_input = args.extract_plain_text().strip()
     if not skill_input:
         await finish_with(matcher, "请输入技能名称，如: ra 侦察")
+        return
     
     try:
         # 获取角色卡
@@ -339,6 +343,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
     """文档系统帮助"""
     if not config.ENABLE_VECTOR_DB:
         await finish_with(matcher, "❌ 文档功能未启用")
+        return
     
     command = args.extract_plain_text().strip()
     
@@ -349,6 +354,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
             
             if not documents:
                 await finish_with(matcher, "📄 暂无已上传的文档")
+                return
             
             response = "📚 已上传的文档:\n"
             for i, doc in enumerate(documents, 1):
@@ -356,15 +362,18 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
                 response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
             
             await finish_with(matcher, response)
+            return
             
         except Exception as e:
             await finish_with(matcher, f"❌ 获取文档列表失败: {str(e)}")
+            return
     
     elif command.startswith("search "):
         # 搜索文档
         query = command[7:].strip()
         if not query:
             await finish_with(matcher, "请输入搜索关键词")
+            return
         
         try:
             results = await vector_db.search_documents(
@@ -376,6 +385,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
             
             if not results:
                 await finish_with(matcher, "🔍 未找到相关内容")
+                return
             
             response = f"🔍 搜索 \"{query}\" 的结果:\n"
             for i, result in enumerate(results, 1):
@@ -383,9 +393,11 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
                 response += f"   {result['text'][:100]}...\n"
             
             await finish_with(matcher, response)
+            return
             
         except Exception as e:
             await finish_with(matcher, f"❌ 搜索失败: {str(e)}")
+            return
     
     else:
         # 显示帮助
@@ -406,6 +418,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
 • ask 这个模组的主要剧情是什么"""
         
         await finish_with(matcher, help_text)
+        return
 
 
 @on_command("doc_text", aliases={"文档文本", "text"}, priority=5, block=True).handle()
@@ -413,12 +426,14 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
     """上传文本文档"""
     if not config.ENABLE_VECTOR_DB:
         await finish_with(matcher, "❌ 文档功能未启用")
+        return
     
     content = args.extract_plain_text().strip()
     parts = content.split(' ', 2)
     
     if len(parts) < 3:
         await finish_with(matcher, "用法: doc_text <类型> <文档名> <内容>\n类型: module/rule/story/background")
+        return
     
     doc_type = parts[0].lower()
     filename = parts[1]
@@ -426,6 +441,7 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
     
     if doc_type not in ["module", "rule", "story", "background"]:
         await finish_with(matcher, "❌ 文档类型必须是: module/rule/story/background")
+        return
     
     try:
         document_id = str(uuid.uuid4())
