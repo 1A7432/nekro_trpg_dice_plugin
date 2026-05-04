@@ -122,7 +122,7 @@ register_prompt_injections(plugin, character_manager, vector_db, store, config, 
 
 # ============ 角色卡管理沙盒方法 ============
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "create_character", "创建新角色卡")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "create_character", "创建新角色卡")
 async def create_character(
     _ctx: AgentCtx,
     name: str,
@@ -189,12 +189,9 @@ async def create_character(
                 f"WIS:{attrs.get('WIS', '?')} "
                 f"CHA:{attrs.get('CHA', '?')}\n"
             )
-        await _ctx.send_text(response, record=False)
         return response
     except Exception as e:
-        err_msg = f"❌ 创建角色失败: {str(e)}"
-        await _ctx.send_text(err_msg, record=False)
-        return err_msg
+        return f"❌ 创建角色失败: {str(e)}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "get_character_sheet", "获取当前角色卡信息")
@@ -257,7 +254,7 @@ async def get_character_sheet(_ctx: AgentCtx) -> str:
         return f"❌ 获取角色卡失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "update_character_skill", "更新角色技能值")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "update_character_skill", "更新角色技能值")
 async def update_character_skill(_ctx: AgentCtx, skill_name: str, value: int) -> str:
     """
     更新角色某项技能的数值
@@ -292,7 +289,7 @@ async def update_character_skill(_ctx: AgentCtx, skill_name: str, value: int) ->
         return f"❌ 更新技能失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "update_character_attribute", "更新角色属性值")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "update_character_attribute", "更新角色属性值")
 async def update_character_attribute(_ctx: AgentCtx, attribute: str, value: int) -> str:
     """
     更新角色某项属性的数值
@@ -480,7 +477,7 @@ async def list_characters(_ctx: AgentCtx) -> str:
         return f"❌ 获取角色列表失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "delete_character", "删除角色卡")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
 async def delete_character(_ctx: AgentCtx, name: str) -> str:
     """删除指定角色卡"""
     user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
@@ -489,20 +486,14 @@ async def delete_character(_ctx: AgentCtx, name: str) -> str:
     try:
         success = await character_manager.delete_character(user_id, chat_key, name)
         if success:
-            msg = f"✅ 角色卡 \"{name}\" 已删除"
-            await _ctx.send_text(msg, record=False)
-            return msg
+            return f"✅ 角色卡 \"{name}\" 已删除"
         else:
-            msg = f"❌ 删除角色卡 \"{name}\" 失败"
-            await _ctx.send_text(msg, record=False)
-            return msg
+            return f"❌ 删除角色卡 \"{name}\" 失败"
     except Exception as e:
-        msg = f"❌ 删除失败: {str(e)}"
-        await _ctx.send_text(msg, record=False)
-        return msg
+        return f"❌ 删除失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "switch_character", "切换当前角色卡")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "switch_character", "切换当前角色卡")
 async def switch_character(_ctx: AgentCtx, name: str) -> str:
     """切换到指定角色卡"""
     user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
@@ -511,17 +502,11 @@ async def switch_character(_ctx: AgentCtx, name: str) -> str:
     try:
         character = await character_manager.get_character(user_id, chat_key, name)
         if character.name == "default" and name != "default":
-            msg = f"❌ 未找到角色卡 \"{name}\""
-            await _ctx.send_text(msg, record=False)
-            return msg
+            return f"❌ 未找到角色卡 \"{name}\""
         await character_manager.set_active_character(user_id, chat_key, name)
-        msg = f"✅ 已切换到角色卡: {character.name} ({character.system})"
-        await _ctx.send_text(msg, record=False)
-        return msg
+        return f"✅ 已切换到角色卡: {character.name} ({character.system})"
     except Exception as e:
-        msg = f"❌ 切换失败: {str(e)}"
-        await _ctx.send_text(msg, record=False)
-        return msg
+        return f"❌ 切换失败: {str(e)}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.AGENT, "sanity_check", "理智检定")
@@ -700,7 +685,7 @@ async def opposed_check(_ctx: AgentCtx, skill1: str, skill2: str, skill1_value: 
         return f"❌ 对抗检定失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "hp_manager", "生命值管理")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "hp_manager", "生命值管理")
 async def hp_manager(_ctx: AgentCtx, action: str, value: int = 0) -> str:
     """
     管理角色生命值
@@ -762,7 +747,7 @@ async def hp_manager(_ctx: AgentCtx, action: str, value: int = 0) -> str:
         return f"❌ HP管理失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "initiative_tracker", "先攻管理")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "initiative_tracker", "先攻管理")
 async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, initiative: int = None) -> str:
     """
     先攻追踪管理
@@ -1196,7 +1181,7 @@ async def get_supported_file_types(_ctx: AgentCtx) -> str:
 
 # ============ 战报相关沙盒方法 ============
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "start_session_recording", "开始记录跑团会话")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "start_session_recording", "开始记录跑团会话")
 async def start_session_recording(_ctx: AgentCtx, session_name: Optional[str] = None) -> str:
     """
     开始记录跑团会话，用于后续生成战报
@@ -1218,7 +1203,7 @@ async def start_session_recording(_ctx: AgentCtx, session_name: Optional[str] = 
         return f"❌ 开始记录失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "add_session_event", "记录跑团关键事件")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "add_session_event", "记录跑团关键事件")
 async def add_session_event(_ctx: AgentCtx, description: str, event_type: str = "general") -> str:
     """
     记录跑团中的关键事件
@@ -1237,7 +1222,7 @@ async def add_session_event(_ctx: AgentCtx, description: str, event_type: str = 
         return f"❌ 记录事件失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "generate_session_report", "生成跑团战报")
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "generate_session_report", "生成跑团战报")
 async def generate_session_report(_ctx: AgentCtx) -> str:
     """
     结束当前跑团并生成战报
