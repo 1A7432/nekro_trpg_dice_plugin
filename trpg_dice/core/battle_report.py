@@ -593,3 +593,6 @@ class BattleReportGenerator:
         # 生成摘要
         summary = self.generator.generate_summary_for_prompt(latest_record, session_name)
         return summary
+
+# 兼容性别名: 远程代码中使用了 BattleReportManager
+BattleReportManager = BattleReportGenerator

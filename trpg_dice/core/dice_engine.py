@@ -160,17 +160,31 @@ class DiceParser:
         """
         expression = expression.replace(" ", "").lower()
 
-        # 分割表达式
-        parts = re.split(r'(?=[+-])', expression)
-        if not parts or (len(parts) == 1 and not parts[0]):
+        # 分割表达式，尊重括号深度，只在括号外切分 +- 
+        parts = []
+        current = ""
+        depth = 0
+        for ch in expression:
+            if ch == '(':
+                depth += 1
+                current += ch
+            elif ch == ')':
+                depth -= 1
+                current += ch
+            elif depth == 0 and ch in '+-':
+                if current:
+                    parts.append(current)
+                current = ch  # 保留符号作为下一部分的开头
+            else:
+                current += ch
+        if current:
+            parts.append(current)
+
+        if not parts:
             raise ValueError("空的骰子表达式")
 
         # 处理开头没有符号的情况
-        if parts[0] == '':
-            parts = parts[1:]
-        elif parts[0].startswith('+') or parts[0].startswith('-'):
-            pass
-        else:
+        if not parts[0].startswith('+') and not parts[0].startswith('-'):
             parts[0] = '+' + parts[0]
 
         results = []

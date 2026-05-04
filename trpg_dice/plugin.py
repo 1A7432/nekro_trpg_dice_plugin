@@ -37,7 +37,7 @@ from .core.battle_report import BattleReportManager
 # 创建插件实例
 plugin = NekroPlugin(
     name="TRPG骰子系统",
-    module_name="trpg_dice",
+    module_name="nekro_trpg_dice_plugin",
     description="完整的TRPG骰子系统，支持多种规则和复杂表达式",
     version="2.0.0",
     author="Dirac",
@@ -140,7 +140,7 @@ async def create_character(
     Returns:
         创建结果信息
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     system_map = {"coc7": "coc7", "dnd5e": "dnd5e", "CoC": "coc7", "DnD5e": "dnd5e"}
@@ -189,9 +189,12 @@ async def create_character(
                 f"WIS:{attrs.get('WIS', '?')} "
                 f"CHA:{attrs.get('CHA', '?')}\n"
             )
+        await _ctx.send_text(response, record=False)
         return response
     except Exception as e:
-        return f"❌ 创建角色失败: {str(e)}"
+        err_msg = f"❌ 创建角色失败: {str(e)}"
+        await _ctx.send_text(err_msg, record=False)
+        return err_msg
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "get_character_sheet", "获取当前角色卡信息")
@@ -202,7 +205,7 @@ async def get_character_sheet(_ctx: AgentCtx) -> str:
     Returns:
         角色卡信息文本
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -266,7 +269,7 @@ async def update_character_skill(_ctx: AgentCtx, skill_name: str, value: int) ->
     Returns:
         更新结果
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -301,7 +304,7 @@ async def update_character_attribute(_ctx: AgentCtx, attribute: str, value: int)
     Returns:
         更新结果
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -375,7 +378,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
     Returns:
         检定结果
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -461,7 +464,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "list_characters", "列出所有角色卡")
 async def list_characters(_ctx: AgentCtx) -> str:
     """列出用户的所有角色卡"""
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -480,33 +483,45 @@ async def list_characters(_ctx: AgentCtx) -> str:
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "delete_character", "删除角色卡")
 async def delete_character(_ctx: AgentCtx, name: str) -> str:
     """删除指定角色卡"""
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
         success = await character_manager.delete_character(user_id, chat_key, name)
         if success:
-            return f"✅ 角色卡 \"{name}\" 已删除"
+            msg = f"✅ 角色卡 \"{name}\" 已删除"
+            await _ctx.send_text(msg, record=False)
+            return msg
         else:
-            return f"❌ 删除角色卡 \"{name}\" 失败"
+            msg = f"❌ 删除角色卡 \"{name}\" 失败"
+            await _ctx.send_text(msg, record=False)
+            return msg
     except Exception as e:
-        return f"❌ 删除失败: {str(e)}"
+        msg = f"❌ 删除失败: {str(e)}"
+        await _ctx.send_text(msg, record=False)
+        return msg
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "switch_character", "切换当前角色卡")
 async def switch_character(_ctx: AgentCtx, name: str) -> str:
     """切换到指定角色卡"""
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
         character = await character_manager.get_character(user_id, chat_key, name)
         if character.name == "default" and name != "default":
-            return f"❌ 未找到角色卡 \"{name}\""
+            msg = f"❌ 未找到角色卡 \"{name}\""
+            await _ctx.send_text(msg, record=False)
+            return msg
         await character_manager.set_active_character(user_id, chat_key, name)
-        return f"✅ 已切换到角色卡: {character.name} ({character.system})"
+        msg = f"✅ 已切换到角色卡: {character.name} ({character.system})"
+        await _ctx.send_text(msg, record=False)
+        return msg
     except Exception as e:
-        return f"❌ 切换失败: {str(e)}"
+        msg = f"❌ 切换失败: {str(e)}"
+        await _ctx.send_text(msg, record=False)
+        return msg
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "sanity_check", "理智检定")
@@ -521,7 +536,7 @@ async def sanity_check(_ctx: AgentCtx, success_loss: str, failure_loss: str) -> 
     Returns:
         检定结果和更新后的SAN值
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -576,7 +591,7 @@ async def skill_growth(_ctx: AgentCtx, skill_name: str) -> str:
     Returns:
         成长结果
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -628,7 +643,7 @@ async def opposed_check(_ctx: AgentCtx, skill1: str, skill2: str, skill1_value: 
     Returns:
         对抗结果
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -697,7 +712,7 @@ async def hp_manager(_ctx: AgentCtx, action: str, value: int = 0) -> str:
     Returns:
         当前HP状态
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
 
     try:
@@ -760,7 +775,7 @@ async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, init
     Returns:
         先攻列表
     """
-    user_id = getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
     store_key = f"initiative.{chat_key}"
 
