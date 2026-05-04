@@ -4,6 +4,43 @@
 
 这是一个功能完善的TRPG骰子系统插件，兼容 NekroAgent v1.0+ 插件系统，支持多种TRPG规则和复杂骰子表达式，为跑团提供全面的掷骰支持。
 
+## AI可用工具（供AI作为KP/DM调用）
+
+当插件处于激活状态时，AI可以调用以下工具来主持游戏：
+
+### 角色卡管理
+- `create_character(name, system='coc7', auto_generate=True)` - 创建新角色
+- `get_character_sheet()` - 获取当前角色卡
+- `update_character_skill(skill_name, value)` - 更新技能值
+- `update_character_attribute(attribute, value)` - 更新属性值
+- `list_characters()` - 列出所有角色卡
+- `switch_character(name)` - 切换角色卡
+- `delete_character(name)` - 删除角色卡
+
+### 骰子与检定
+- `roll_dice(expression)` - 投掷骰子（支持复杂表达式）
+- `skill_check(skill_name, bonus=0, penalty=0, dc=None, proficient=False)` - 技能检定
+- `sanity_check(success_loss, failure_loss)` - 理智检定（自动扣SAN）
+- `skill_growth(skill_name)` - 技能成长检定
+- `opposed_check(skill1, skill2)` - 对抗检定
+- `wod_check(pool_size, difficulty=6)` - WoD骰池检定
+- `random_madness(madness_type='temp')` - 随机生成疯狂症状
+
+### 状态与战斗
+- `hp_manager(action, value=0)` - HP管理（show/add/sub/set）
+- `initiative_tracker(action, name=None, initiative=None)` - 先攻追踪
+
+### 文档系统
+- `upload_document(file_path, doc_type='module')` - 上传文档
+- `search_documents(query, doc_type=None, limit=5)` - 搜索文档
+- `answer_document_question(question)` - 基于文档问答
+- `list_my_documents(doc_type=None)` - 列出文档
+
+### 战报系统
+- `start_session_recording(session_name=None)` - 开始记录跑团
+- `add_session_event(description, event_type='general')` - 记录关键事件
+- `generate_session_report()` - 生成战报
+
 ## 基础掷骰指令
 
 ### 基本掷骰

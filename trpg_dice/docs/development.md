@@ -252,6 +252,43 @@ def register_prompt_injections(plugin, character_manager, vector_db, store, conf
         return "自定义提示词内容"
 ```
 
+#### 添加新的AI沙盒方法
+
+例如添加 `random_madness` 方法供AI作为KP时调用：
+
+```python
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "random_madness", "随机生成疯狂症状")
+async def random_madness(_ctx: AgentCtx, madness_type: str = "temp") -> str:
+    """
+    随机生成COC7疯狂症状
+    
+    Args:
+        madness_type: 疯狂类型 (temp/临时, long/总结, indefinite/不定)
+    
+    Returns:
+        随机疯狂症状描述
+    """
+    temp_symptoms = [
+        "失忆：调查员会发现自己只记得最后身处的安全地点...",
+        "假性残疾：调查员陷入了心理性的失明、失聪...",
+        # ... 更多症状
+    ]
+    
+    long_symptoms = [
+        "恐惧症：调查员患上了一种恐惧症...",
+        "躁狂症：调查员患上了一种躁狂症...",
+        # ... 更多症状
+    ]
+    
+    type_map = {
+        "temp": temp_symptoms, "临时": temp_symptoms,
+        "long": long_symptoms, "总结": long_symptoms,
+    }
+    
+    symptoms = type_map.get(madness_type.lower(), temp_symptoms)
+    return random.choice(symptoms)
+```
+
 #### 添加新的提示词注入
 
 ```python
@@ -391,6 +428,34 @@ async def get_custom_data(user_id: str, chat_key: str) -> dict:
     except Exception:
         return {}
 ```
+
+### 3. 插件激活调度配置
+
+TRPG 插件支持 NekroAgent 的插件激活调度机制，允许插件在非跑团场景下自动休眠，减少上下文占用。
+
+```python
+plugin = NekroPlugin(
+    name="TRPG骰子系统",
+    module_name="trpg_dice",
+    # ...
+    allow_sleep=True,
+    sleep_brief=(
+        "完整的TRPG跑团系统，支持COC7/DND5E/WoD等多种规则的骰子投掷、"
+        "角色卡管理、技能检定、先攻追踪、战报记录和文档检索。"
+        "当用户提到跑团、掷骰、检定、角色卡、战报、模组或任何TRPG相关内容时激活。"
+    ),
+)
+```
+
+**allow_sleep 参数说明:**
+- `None`（默认）: 不参与调度，始终常驻
+- `False`: 强制禁止休眠（受保护插件）
+- `True`: 允许休眠（须同时提供 `sleep_brief`）
+
+**sleep_brief 写作原则:**
+- 明确说明插件用途和核心能力
+- 描述典型激活场景
+- 简洁，无需详细列出方法
 
 ## 🧪 测试和调试
 
