@@ -336,7 +336,7 @@ async def update_character_attribute(_ctx: AgentCtx, attribute: str, value: int)
         return f"❌ 更新属性失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "roll_dice", "投掷骰子")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "roll_dice", "投掷骰子")
 async def roll_dice(_ctx: AgentCtx, expression: str) -> str:
     """
     投掷骰子并返回结果
@@ -363,7 +363,7 @@ async def roll_dice(_ctx: AgentCtx, expression: str) -> str:
         return f"❌ 掷骰失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "skill_check", "角色技能检定")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "skill_check", "角色技能检定")
 async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: int = 0, dc: int = None, proficient: bool = False) -> str:
     """
     对当前角色进行技能检定
@@ -524,7 +524,7 @@ async def switch_character(_ctx: AgentCtx, name: str) -> str:
         return msg
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "sanity_check", "理智检定")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "sanity_check", "理智检定")
 async def sanity_check(_ctx: AgentCtx, success_loss: str, failure_loss: str) -> str:
     """
     进行COC7理智检定(SAN Check)
@@ -580,7 +580,7 @@ async def sanity_check(_ctx: AgentCtx, success_loss: str, failure_loss: str) -> 
         return f"❌ 理智检定失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "skill_growth", "技能成长检定")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "skill_growth", "技能成长检定")
 async def skill_growth(_ctx: AgentCtx, skill_name: str) -> str:
     """
     进行COC7技能成长检定(EN)
@@ -629,7 +629,7 @@ async def skill_growth(_ctx: AgentCtx, skill_name: str) -> str:
         return f"❌ 成长检定失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "opposed_check", "对抗检定")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "opposed_check", "对抗检定")
 async def opposed_check(_ctx: AgentCtx, skill1: str, skill2: str, skill1_value: int = None, skill2_value: int = None) -> str:
     """
     COC7对抗检定
@@ -831,7 +831,7 @@ async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, init
         return f"❌ 先攻管理失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "wod_check", "黑暗世界骰池检定")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "wod_check", "黑暗世界骰池检定")
 async def wod_check(_ctx: AgentCtx, pool_size: int, difficulty: int = 6) -> str:
     """
     进行WoD骰池检定
@@ -1109,7 +1109,7 @@ async def answer_document_question(_ctx: AgentCtx, question: str) -> str:
         return f"❌ 问答失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "random_madness", "随机生成疯狂症状")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "random_madness", "随机生成疯狂症状")
 async def random_madness(_ctx: AgentCtx, madness_type: str = "temp") -> str:
     """
     随机生成COC7疯狂症状，供KP/DM在需要时使用
