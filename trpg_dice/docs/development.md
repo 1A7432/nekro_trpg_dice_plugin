@@ -13,6 +13,7 @@ trpg_dice/
 │   ├── dice_engine.py       # 骰子解析和投掷引擎
 │   ├── character_manager.py # 角色卡管理系统
 │   ├── document_manager.py  # 文档存储和检索系统
+│   ├── battle_report.py     # 跑团战报系统
 │   └── prompt_injection.py  # AI提示词注入系统
 ├── templates/               # 角色生成模板
 │   ├── coc7_template.json   # COC7官方模板
@@ -20,6 +21,7 @@ trpg_dice/
 ├── docs/                    # 文档目录
 │   ├── trpg_dice_help.md    # 用户使用手册
 │   ├── trpg_prompt_examples.md  # 提示词注入示例
+│   ├── battle_report_guide.md   # 战报系统指南
 │   └── development.md       # 本开发文档
 └── examples/                # 示例代码（预留）
 ```
@@ -187,14 +189,58 @@ if doc_type not in ["module", "rule", "story", "background", "new_type"]:
     await message.finish("❌ 文档类型必须是: module/rule/story/background/new_type")
 ```
 
-### 4. 提示词注入系统 (prompt_injection.py)
+### 5. 战报系统 (battle_report.py)
+
+#### 核心类说明
+
+**SessionRecord**: 跑团会话记录
+```python
+class SessionRecord:
+    def __init__(self, session_id: str):
+        self.dice_rolls = []       # 掷骰记录
+        self.skill_checks = []     # 技能检定记录
+        self.combat_rounds = []    # 战斗轮次记录
+        self.key_events = []       # 关键事件
+        self.player_actions = {}   # 玩家行动记录
+        self.player_stats = {}     # 玩家统计
+```
+
+**BattleReportManager**: 战报管理器
+```python
+class BattleReportManager:
+    async def start_session(self, chat_key: str, session_name: str = None) -> str
+    async def end_session(self, chat_key: str) -> Optional[SessionRecord]
+    async def add_dice_roll(self, chat_key, user_id, char_name, expression, result, is_critical=False)
+    async def add_skill_check(self, chat_key, user_id, char_name, skill, target, roll, success_level)
+    async def add_key_event(self, chat_key: str, description: str, event_type: str = "general")
+    async def generate_battle_report(self, chat_key: str) -> Tuple[str, str, str]
+    async def get_last_session_summary(self, chat_key: str) -> Optional[str]
+```
+
+#### 扩展战报记录
+
+在 plugin.py 的命令处理器中集成战报记录：
+```python
+# 在投骰命令中
+await battle_report_manager.ensure_session_started(chat_key)
+await battle_report_manager.add_dice_roll(
+    chat_key, user_id, char_name, expression, result.total, is_critical
+)
+
+# 在技能检定命令中
+await battle_report_manager.add_skill_check(
+    chat_key, user_id, char_name, skill_name, skill_value, roll, level
+)
+```
+
+### 6. 提示词注入系统 (prompt_injection.py)
 
 #### 核心功能
 
 提示词注入让AI能够智能地使用插件功能，提供专业的TRPG体验。
 
 ```python
-def register_prompt_injections(plugin, character_manager, vector_db, store, config):
+def register_prompt_injections(plugin, character_manager, vector_db, store, config, battle_report_manager):
     """注册所有提示词注入方法"""
     
     @plugin.mount_prompt_inject_method(
