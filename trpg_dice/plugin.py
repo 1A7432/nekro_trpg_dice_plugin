@@ -32,6 +32,7 @@ from .core.dice_engine import DiceParser, DiceRoller, DiceResult, config as dice
 from .core.character_manager import CharacterManager, CharacterSheet, CharacterTemplate
 from .core.document_manager import VectorDatabaseManager, DocumentProcessor
 from .core.prompt_injection import register_prompt_injections
+from .core.battle_report import BattleReportManager
 
 # 创建插件实例
 plugin = NekroPlugin(
@@ -107,9 +108,10 @@ vector_db = VectorDatabaseManager(
     collection_name=plugin.get_vector_collection_name("trpg_documents"),
     logger=plugin.logger
 )
+battle_report_manager = BattleReportManager(store)
 
 # 注册提示词注入
-register_prompt_injections(plugin, character_manager, vector_db, store, config)
+register_prompt_injections(plugin, character_manager, vector_db, store, config, battle_report_manager)
 
 
 # ============ 角色卡管理沙盒方法 ============
@@ -846,7 +848,7 @@ async def wod_check(_ctx: AgentCtx, pool_size: int, difficulty: int = 6) -> str:
 # ============ 文档上传沙盒方法 ============
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "upload_document", "上传并处理文档文件")
-async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "module", custom_filename: str = None) -> str:
+async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "module", custom_filename: Optional[str] = None) -> str:
     """
     处理用户上传的文档文件
     
@@ -965,7 +967,7 @@ async def delete_document(_ctx: AgentCtx, filename: str) -> str:
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "list_my_documents", "列出我的所有文档")
-async def list_my_documents(_ctx: AgentCtx, doc_type: str = None) -> str:
+async def list_my_documents(_ctx: AgentCtx, doc_type: Optional[str] = None) -> str:
     """
     列出用户的所有文档
     
@@ -1005,7 +1007,7 @@ async def list_my_documents(_ctx: AgentCtx, doc_type: str = None) -> str:
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "search_documents", "搜索文档内容")
-async def search_documents(_ctx: AgentCtx, query: str, doc_type: str = None, limit: int = 5) -> str:
+async def search_documents(_ctx: AgentCtx, query: str, doc_type: Optional[str] = None, limit: int = 5) -> str:
     """
     搜索文档内容
     
@@ -1111,11 +1113,111 @@ async def get_supported_file_types(_ctx: AgentCtx) -> str:
 3. 处理完成后可以搜索和询问文档内容"""
 
 
+# ============ 战报相关沙盒方法 ============
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "start_session_recording", "开始记录跑团会话")
+async def start_session_recording(_ctx: AgentCtx, session_name: Optional[str] = None) -> str:
+    """
+    开始记录跑团会话，用于后续生成战报
+    
+    Args:
+        session_name: 可选的会话名称
+    
+    Returns:
+        开始记录的确认信息
+    """
+    try:
+        session_id = await battle_report_manager.start_session(_ctx.chat_key, session_name)
+        
+        if session_name:
+            return f"✅ 已开始记录跑团会话: {session_name}"
+        else:
+            return "✅ 已开始记录跑团会话，结束时将自动生成战报"
+    except Exception as e:
+        return f"❌ 开始记录失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "add_session_event", "记录跑团关键事件")
+async def add_session_event(_ctx: AgentCtx, description: str, event_type: str = "general") -> str:
+    """
+    记录跑团中的关键事件
+    
+    Args:
+        description: 事件描述
+        event_type: 事件类型 (general/combat/story/discovery)
+    
+    Returns:
+        记录结果
+    """
+    try:
+        await battle_report_manager.add_key_event(_ctx.chat_key, description, event_type)
+        return f"✅ 已记录关键事件: {description}"
+    except Exception as e:
+        return f"❌ 记录事件失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "generate_session_report", "生成跑团战报")
+async def generate_session_report(_ctx: AgentCtx) -> str:
+    """
+    结束当前跑团并生成战报
+    
+    Returns:
+        战报内容和Markdown文档
+    """
+    try:
+        text_report, markdown_report, session_name = await battle_report_manager.generate_battle_report(_ctx.chat_key)
+        
+        if not text_report:
+            return "❌ 没有正在进行的跑团会话"
+        
+        # 将Markdown文档保存到沙监文件系统
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"battle_report_{timestamp}.md"
+        
+        # 写入沙监文件系统
+        sandbox_path = _ctx.fs.get_sandbox_path() / filename
+        with open(sandbox_path, 'w', encoding='utf-8') as f:
+            f.write(markdown_report)
+        
+        # 返回文本战报和文档路径
+        response = f"{text_report}\n\n📄 Markdown战报已生成: {filename}"
+        
+        return response
+        
+    except Exception as e:
+        return f"❌ 生成战报失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "get_battle_report_markdown", "获取Markdown格式战报")
+async def get_battle_report_markdown(_ctx: AgentCtx, timestamp: str) -> str:
+    """
+    获取之前生成的Markdown战报
+    
+    Args:
+        timestamp: 战报的时间戳
+    
+    Returns:
+        Markdown格式的战报内容
+    """
+    try:
+        report_key = f"battle_report.{_ctx.chat_key}.{timestamp}"
+        markdown_report = await store.get(store_key=report_key)
+        
+        if not markdown_report:
+            return "❌ 未找到指定的战报"
+        
+        return markdown_report
+        
+    except Exception as e:
+        return f"❌ 获取战报失败: {str(e)}"
+
+
 # ============ 骰子相关命令 ============
 
 @on_command("r", priority=5, block=True).handle()
 async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
-    """基础掷骰指令"""
+    """基础投骰指令"""
     expression = args.extract_plain_text().strip()
     if not expression:
         await finish_with(matcher, "请输入骰子表达式，如: r 3d6+2")
@@ -1126,10 +1228,33 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message 
         response = f"🎲 {result.format_result()}"
         
         # 添加特殊效果提示
+        is_critical = False
         if result.is_critical_success():
             response += " ✨ 大成功!"
+            is_critical = True
         elif result.is_critical_failure():
             response += " 💥 大失败!"
+            is_critical = True
+        
+        # 确保有活跃的战报会话
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        await battle_report_manager.ensure_session_started(chat_key)
+        
+        # 记录到战报系统
+        try:
+            character = await character_manager.get_character(str(event.user_id), chat_key)
+            char_name = character.name if character else "未知角色"
+            
+            await battle_report_manager.add_dice_roll(
+                chat_key,
+                str(event.user_id),
+                char_name,
+                expression,
+                result.total,
+                is_critical
+            )
+        except Exception:
+            pass  # 如果记录失败，不影响正常投骰
         
         await finish_with(matcher, response)
         return
@@ -1199,10 +1324,27 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, args: M
     
     # 获取角色信息
     try:
-        character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        
+        # 确保有活跃的战报会话
+        await battle_report_manager.ensure_session_started(chat_key)
+        
+        character = await character_manager.get_character(str(event.user_id), chat_key)
         char_name = character.name if character else "你"
         
         response = f"🎭 {char_name} {action}"
+        
+        # 记录到战报系统
+        try:
+            await battle_report_manager.add_player_action(
+                chat_key,
+                str(event.user_id),
+                char_name,
+                action
+            )
+        except Exception:
+            pass
+        
         await finish_with(matcher, response)
         return
     except Exception:
@@ -1219,6 +1361,11 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
         return
     
     try:
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        
+        # 确保有活跃的战报会话
+        await battle_report_manager.ensure_session_started(chat_key)
+        
         # 解析奖惩骰前缀
         bonus = 0
         penalty = 0
@@ -1245,9 +1392,8 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
         elif skill_input.startswith("极"):
             difficulty = "extreme"
             skill_input = skill_input[1:].strip()
-
         # 获取角色卡
-        character = await character_manager.get_character(str(event.user_id), str(getattr(event, "group_id", None) or event.user_id))
+        character = await character_manager.get_character(str(event.user_id), chat_key)
         
         # 查找技能
         skill_name = character_manager.find_skill_by_alias(character, skill_input)
@@ -1276,6 +1422,20 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
                 response += f" [{difficulty}]"
             response += (f"\n🎲 掷出: {result['final_roll']} (原始{result['roll']})\n"
                         f"✨ 结果: {result['level']}")
+            
+            # 记录到战报系统
+            try:
+                await battle_report_manager.add_skill_check(
+                    chat_key,
+                    str(event.user_id),
+                    character.name,
+                    skill_name,
+                    skill_value,
+                    result['final_roll'],
+                    result['level']
+                )
+            except Exception:
+                pass
         else:
             # DND5E 完整检定
             modifier = character_manager.get_dnd_skill_modifier(character, skill_name)
@@ -2278,6 +2438,11 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 • doc - 文档帮助
 • ask <问题> - 智能问答
 
+📄 战报系统:
+• session start [名称] - 开始记录跑团
+• session end - 结束并生成战报
+• session event <描述> - 记录关键事件
+
 🍀 其他:
 • me <动作> - 角色动作
 • ti - 临时疯狂症状
@@ -2289,6 +2454,106 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
     
     await finish_with(matcher, help_text)
     return
+
+
+# ============ 战报管理命令 ============
+
+@on_command("session", aliases={"跑团", "会话"}, priority=5, block=True).handle()
+async def handle_session(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """跑团会话管理"""
+    command = args.extract_plain_text().strip()
+    chat_key = str(getattr(event, "group_id", None) or event.user_id)
+    
+    if command.startswith("start"):
+        # 开始记录
+        parts = command.split(maxsplit=1)
+        session_name = parts[1] if len(parts) > 1 else None
+        
+        try:
+            session_id = await battle_report_manager.start_session(chat_key, session_name)
+            if session_name:
+                await finish_with(matcher, f"✅ 已开始记录跑团会话: {session_name}\n\n📝 所有投骰、检定和行动将自动记录\n📄 结束时使用 'session end' 生成战报")
+            else:
+                await finish_with(matcher, f"✅ 已开始记录跑团会话\n\n📝 所有投骰、检定和行动将自动记录\n📄 结束时使用 'session end' 生成战报")
+        except Exception as e:
+            await finish_with(matcher, f"❌ 开始记录失败: {str(e)}")
+        return
+    
+    elif command == "end":
+        # 结束并生成战报
+        try:
+            text_report, markdown_report, session_name = await battle_report_manager.generate_battle_report(chat_key)
+            
+            if not text_report:
+                await finish_with(matcher, "❌ 没有正在进行的跑团会话")
+                return
+            
+            # 保存Markdown文档到存储
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"battle_report_{timestamp}.md"
+            
+            # 将Markdown内容保存到存储
+            report_key = f"battle_report.{chat_key}.{timestamp}"
+            await store.set(store_key=report_key, value=markdown_report)
+            
+            # 发送文本战报和Markdown文档提示
+            response = text_report + f"\n\n📄 Markdown战报已生成: {filename}\n💡 请告诉AI获取Markdown战报文档"
+            await finish_with(matcher, response)
+            
+        except Exception as e:
+            if "FinishedException" in str(type(e)):
+                raise
+            else:
+                await finish_with(matcher, f"❌ 生成战报失败: {str(e)}")
+        return
+    
+    elif command.startswith("event"):
+        # 记录关键事件
+        parts = command.split(maxsplit=1)
+        if len(parts) < 2:
+            await finish_with(matcher, "请输入事件描述，如: session event 发现了神秘的地下入口")
+            return
+        
+        description = parts[1]
+        try:
+            await battle_report_manager.add_key_event(chat_key, description)
+            await finish_with(matcher, f"✅ 已记录关键事件: {description}")
+        except Exception as e:
+            await finish_with(matcher, f"❌ 记录事件失败: {str(e)}")
+        return
+    
+    else:
+        # 显示帮助
+        help_text = """📄 跑团战报系统
+
+🎯 使用方法:
+• session start [名称] - 开始记录跑团会话
+• session end - 结束并生成战报
+• session event <描述> - 记录关键事件
+
+📊 自动记录项:
+• 🎲 所有投骰结果
+• 🎯 技能检定详情
+• 🎭 角色动作 (me命令)
+
+🏆 战报内容:
+• 每位PC的详细评分（5星级别）
+• 游戏时长和统计数据
+• 关键事件回顾
+• 精彩时刻（大成功/大失败）
+
+📄 输出格式:
+• 聊天窗口显示文本版战报
+• 自动生成Markdown文档
+
+💡 示例:
+session start 深海古城探险  # 开始记录
+session event 发现了神秘的地下入口  # 记录关键事件
+session end  # 生成战报"""
+        
+        await finish_with(matcher, help_text)
+        return
 
 
 # ============ 清理方法 ============

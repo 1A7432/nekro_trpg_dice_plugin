@@ -287,6 +287,25 @@ async def inject_document_context_prompt(_ctx, vector_db, enable_vector_db: bool
     return ""
 
 
+async def inject_session_history_prompt(_ctx, battle_report_manager) -> str:
+    """
+    历史战报记忆注入
+    注入上次跑团的战报摘要，作为游戏历史记忆
+    """
+    
+    try:
+        # 获取上次跑团的简要总结
+        summary = await battle_report_manager.get_last_session_summary(_ctx.chat_key)
+        
+        if summary:
+            return summary
+        else:
+            # 如果没有历史记录，返回空
+            return ""
+    except Exception:
+        return ""
+
+
 async def inject_interaction_style_prompt(_ctx) -> str:
     """
     TRPG交互风格提示词注入
@@ -331,7 +350,26 @@ async def inject_interaction_style_prompt(_ctx) -> str:
 • 尊重玩家对角色的扮演和选择"""
 
 
-def register_prompt_injections(plugin, character_manager, vector_db, store, config):
+async def inject_session_history_prompt(_ctx, battle_report_manager) -> str:
+    """
+    历史战报记忆注入
+    注入上次跑团的战报摘要，作为游戏历史记忆
+    """
+    
+    try:
+        # 获取上次跑团的简要总结
+        summary = await battle_report_manager.get_last_session_summary(_ctx.chat_key)
+        
+        if summary:
+            return summary
+        else:
+            # 如果没有历史记录，返回空
+            return ""
+    except Exception:
+        return ""
+
+
+def register_prompt_injections(plugin, character_manager, vector_db, store, config, battle_report_manager):
     """注册所有提示词注入方法"""
 
     @plugin.mount_prompt_inject_method(
@@ -346,6 +384,8 @@ def register_prompt_injections(plugin, character_manager, vector_db, store, conf
         description="注入当前游戏状态和角色信息"
     )
     async def _inject_game_state_prompt(_ctx) -> str:
+        # 自动确保有活跃的战报记录
+        await battle_report_manager.ensure_session_started(_ctx.chat_key)
         return await inject_game_state_prompt(_ctx, character_manager, store)
 
     @plugin.mount_prompt_inject_method(
@@ -368,3 +408,10 @@ def register_prompt_injections(plugin, character_manager, vector_db, store, conf
     )
     async def _inject_interaction_style_prompt(_ctx) -> str:
         return await inject_interaction_style_prompt(_ctx)
+    
+    @plugin.mount_prompt_inject_method(
+        name="session_history_memory",
+        description="注入上次跑团的战报记忆，作为游戏历史上下文"
+    )
+    async def _inject_session_history_prompt(_ctx) -> str:
+        return await inject_session_history_prompt(_ctx, battle_report_manager)
