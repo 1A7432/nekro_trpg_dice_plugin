@@ -43,6 +43,12 @@ plugin = NekroPlugin(
     author="Dirac",
     url="https://github.com/nekro-agent/trpg-dice-plugin",
     support_adapter=["onebot_v11", "discord"],
+    allow_sleep=True,
+    sleep_brief=(
+        "完整的TRPG跑团系统，支持COC7/DND5E/WoD等多种规则的骰子投掷、"
+        "角色卡管理、技能检定、先攻追踪、战报记录和文档检索。"
+        "当用户提到跑团、掷骰、检定、角色卡、战报、模组或任何TRPG相关内容时激活。"
+    ),
 )
 
 
@@ -1086,6 +1092,66 @@ async def answer_document_question(_ctx: AgentCtx, question: str) -> str:
         
     except Exception as e:
         return f"❌ 问答失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "random_madness", "随机生成疯狂症状")
+async def random_madness(_ctx: AgentCtx, madness_type: str = "temp") -> str:
+    """
+    随机生成COC7疯狂症状，供KP/DM在需要时使用
+    
+    Args:
+        madness_type: 疯狂类型 (temp/临时, long/总结, indefinite/不定)
+    
+    Returns:
+        随机疯狂症状描述
+    """
+    temp_symptoms = [
+        "失忆：调查员会发现自己只记得最后身处的安全地点，却没有任何来到这里的记忆。",
+        "假性残疾：调查员陷入了心理性的失明、失聪或躯体缺失感中。",
+        "暴力倾向：调查员陷入了六亲不认的暴力行为中。",
+        "偏执：调查员陷入了严重的偏执妄想之中，所有人都想要伤害他。",
+        "人际依赖：调查员因为一些原因而将某人当作了支柱。",
+        "昏厥：调查员当场昏倒。",
+        "逃避行为：调查员会用任何手段试图逃离现场。",
+        "歇斯底里：调查员表现出大笑、哭泣、嘶吼、害怕等极端情绪反应。"
+    ]
+    
+    long_symptoms = [
+        "恐惧症：调查员患上了一种恐惧症，如幽闭恐惧症、恐高症等。",
+        "躁狂症：调查员患上了一种躁狂症，如盗窃癖、纵火癖等。",
+        "幻觉：调查员持续产生幻觉。",
+        "偏执：调查员持续处于偏执状态。",
+        "解离性障碍：调查员的人格发生分裂或记忆丧失。",
+        "强迫症：调查员产生了强迫性的行为模式。",
+        "抑郁症：调查员陷入了严重的抑郁状态。",
+        "创伤后应激障碍：调查员因恐怖经历而产生持续的心理创伤。"
+    ]
+    
+    indefinite_symptoms = [
+        "强烈的被迫害妄想，认为周围的一切都在针对自己。",
+        "无法控制的重复行为，如不断洗手、检查门锁等。",
+        "严重的解离症状，感觉自己不属于这个世界。",
+        "持续的噩梦和失眠，精神极度衰弱。",
+        "对某种颜色或声音的极度恐惧和排斥。",
+        "出现第二人格，完全不同于平时的自己。",
+        "失去对时间的感知，认为时间倒流或停滞。",
+        "坚信自己变成了某种非人生物。"
+    ]
+    
+    type_map = {
+        "temp": temp_symptoms, "临时": temp_symptoms, "temporary": temp_symptoms,
+        "long": long_symptoms, "总结": long_symptoms, "总结性": long_symptoms,
+        "indefinite": indefinite_symptoms, "不定": indefinite_symptoms, "不定性": indefinite_symptoms,
+    }
+    
+    symptoms = type_map.get(madness_type.lower(), temp_symptoms)
+    symptom = random.choice(symptoms)
+    
+    type_label = {"temp": "临时", "long": "总结", "indefinite": "不定"}.get(
+        madness_type.lower(), "临时"
+    )
+    
+    return f"🌀 {type_label}疯狂症状:\n{symptom}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "get_supported_file_types", "获取支持的文件类型")

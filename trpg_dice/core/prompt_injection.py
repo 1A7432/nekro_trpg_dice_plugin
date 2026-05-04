@@ -44,6 +44,7 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• sanity_check(success_loss, failure_loss) - 理智检定 (自动扣除SAN)",
         "• skill_growth(skill_name) - 技能成长检定 (COC7)",
         "• opposed_check(skill1, skill2) - 对抗检定 (COC7)",
+        "• random_madness(madness_type='temp') - 随机生成疯狂症状 (temp/long/indefinite)",
         "• wod_check(pool_size, difficulty=6) - 黑暗世界骰池检定",
         "",
         "### 状态与战斗",
