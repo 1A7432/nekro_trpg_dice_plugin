@@ -15,6 +15,13 @@ from datetime import datetime
 from nekro_agent.api import core
 from nekro_agent.services.agent.openai import gen_openai_embeddings
 
+# Qdrant模型导入（可选，用于类型安全）
+try:
+    from qdrant_client import models as qdrant_models
+    QDRANT_MODELS_AVAILABLE = True
+except ImportError:
+    QDRANT_MODELS_AVAILABLE = False
+
 # 可选依赖的导入
 try:
     import docx  # python-docx for Word documents
@@ -164,11 +171,16 @@ class VectorDatabaseManager:
     向量数据库管理器 - 处理文档的向量化存储和检索
     """
 
-    def __init__(self, collection_name: str = "trpg_documents"):
+    def __init__(self, collection_name: str = "trpg_documents", logger=None):
         self.collection_name = collection_name
         self.qdrant_client = None
         self.embedding_dim = 1536  # text-embedding-v4支持1536维度，默认使用1536
         self.document_processor = DocumentProcessor()
+        if logger is None:
+            from nekro_agent.api import core
+            self.logger = core.logger
+        else:
+            self.logger = logger
 
     async def _get_client(self):
         """获取Qdrant客户端"""
@@ -195,7 +207,7 @@ class VectorDatabaseManager:
 
                 model_group_info = core_config.get_model_group_info("text-embedding")
                 if not model_group_info:
-                    core.logger.error(
+                    self.logger.error(
                         "无法找到 'text-embedding' 模型组配置，使用默认维度1536"
                     )
                     self.embedding_dim = 1536
@@ -211,13 +223,22 @@ class VectorDatabaseManager:
                     self.embedding_dim = len(test_embedding)
             except Exception as e:
                 # 如果嵌入生成失败，使用默认维度768（text-embedding-v3支持）
-                core.logger.error(f"生成测试嵌入失败: {e}，使用默认维度768")
+                self.logger.error(f"生成测试嵌入失败: {e}，使用默认维度768")
                 self.embedding_dim = 768
 
-            await client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config={"size": self.embedding_dim, "distance": "Cosine"},
-            )
+            if QDRANT_MODELS_AVAILABLE:
+                await client.create_collection(
+                    collection_name=self.collection_name,
+                    vectors_config=qdrant_models.VectorParams(
+                        size=self.embedding_dim,
+                        distance=qdrant_models.Distance.COSINE,
+                    ),
+                )
+            else:
+                await client.create_collection(
+                    collection_name=self.collection_name,
+                    vectors_config={"size": self.embedding_dim, "distance": "Cosine"},
+                )
 
     async def store_document(
         self,
@@ -259,16 +280,16 @@ class VectorDatabaseManager:
 
                 model_group_info = core_config.get_model_group_info("text-embedding")
                 if not model_group_info:
-                    core.logger.error(
+                    self.logger.error(
                         "无法找到 'text-embedding' 模型组配置，跳过嵌入生成"
                     )
                     continue
 
                 # 调用嵌入模型生成向量
-                core.logger.debug(
+                self.logger.debug(
                     f"调用嵌入模型: model={model_group_info.CHAT_MODEL}, base_url={model_group_info.BASE_URL}"
                 )
-                core.logger.debug(
+                self.logger.debug(
                     f"API密钥: {model_group_info.API_KEY[:10]}..."
                     if model_group_info.API_KEY
                     else "API密钥为空"
@@ -283,21 +304,21 @@ class VectorDatabaseManager:
                         dimensions=1536,
                     )
                 except Exception as embed_error:
-                    core.logger.error(f"嵌入生成调用失败: {embed_error}")
-                    core.logger.error(f"模型: {model_group_info.CHAT_MODEL}")
-                    core.logger.error(f"基础URL: {model_group_info.BASE_URL}")
+                    self.logger.error(f"嵌入生成调用失败: {embed_error}")
+                    self.logger.error(f"模型: {model_group_info.CHAT_MODEL}")
+                    self.logger.error(f"基础URL: {model_group_info.BASE_URL}")
                     raise
 
                 # 验证嵌入向量维度 - text-embedding-v4支持1536维度
                 vector_dimension = len(embedding)
                 if vector_dimension != 1536:
-                    core.logger.warning(f"嵌入向量维度不匹配！期望: 1536, 实际: {vector_dimension}")
+                    self.logger.warning(f"嵌入向量维度不匹配！期望: 1536, 实际: {vector_dimension}")
                 else:
-                    core.logger.debug(f"嵌入向量维度正确: 1536")
+                    self.logger.debug(f"嵌入向量维度正确: 1536")
 
             except Exception as e:
                 # 如果嵌入生成失败，跳过这个块
-                core.logger.error(f"生成文档块嵌入失败: {e}，跳过该块")
+                self.logger.error(f"生成文档块嵌入失败: {e}，跳过该块")
                 continue
 
             # 创建点数据 - 使用UUID格式作为点ID
@@ -370,7 +391,7 @@ class VectorDatabaseManager:
                 )
         except Exception as e:
             # 如果嵌入生成失败，使用简单的文本匹配作为备选方案
-            core.logger.warning(f"生成查询嵌入失败: {e}，使用文本匹配模式")
+            self.logger.warning(f"生成查询嵌入失败: {e}，使用文本匹配模式")
             # 返回空列表，让上层处理
             return []
 
@@ -523,12 +544,6 @@ class VectorDatabaseManager:
 
 请基于上述文档内容回答问题，如果信息不足请说明。"""
 
-        # 这里需要调用AI模型来生成回答
-        # 具体实现取决于nekro agent的AI调用接口
-        try:
-            from nekro_agent import core
-
-            answer = await core.call_ai_with_prompt(prompt)
-            return answer
-        except Exception:
-            return "抱歉，在处理您的问题时遇到了技术问题。"
+        # 基于文档内容直接返回答案
+        # 注意：AI模型调用由外层Agent框架处理，这里只提供检索到的文档上下文
+        return prompt
