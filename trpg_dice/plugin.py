@@ -1461,6 +1461,179 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
         return
 
 
+@on_command("rah", aliases={"rahide"}, priority=5, block=True).handle()
+async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """隐藏技能检定"""
+    skill_input = args.extract_plain_text().strip()
+    if not skill_input:
+        await finish_with(matcher, "请输入技能名称，如: rah 侦察")
+        return
+    
+    try:
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        
+        # 确保有活跃的战报会话
+        await battle_report_manager.ensure_session_started(chat_key)
+        
+        # 解析困难/极难前缀
+        difficulty = "normal"
+        if skill_input.startswith("困难"):
+            difficulty = "hard"
+            skill_input = skill_input[2:].strip()
+        elif skill_input.startswith("极难"):
+            difficulty = "extreme"
+            skill_input = skill_input[2:].strip()
+        elif skill_input.startswith("极"):
+            difficulty = "extreme"
+            skill_input = skill_input[1:].strip()
+        
+        # 获取角色卡
+        character = await character_manager.get_character(str(event.user_id), chat_key)
+        
+        # 查找技能
+        skill_name = character_manager.find_skill_by_alias(character, skill_input)
+        if not skill_name:
+            skill_name = skill_input
+        
+        # 获取技能值
+        skill_value = character.skills.get(skill_name, 0)
+        
+        # 应用难度修正
+        if difficulty == "hard":
+            skill_value = skill_value // 2
+        elif difficulty == "extreme":
+            skill_value = skill_value // 5
+        
+        # 执行隐藏检定
+        if character.system == "CoC":
+            result = DiceRoller.roll_coc_check(skill_value)
+            success = result["success"]
+            emoji = "✅" if success else "❌"
+            response = (
+                f"🎭 {character.name} 进行 {skill_name} 检定\n"
+                f"🎯 目标值: {skill_value}\n"
+                f"{emoji} 结果: {result['level']}"
+            )
+            
+            # 记录到战报系统
+            try:
+                await battle_report_manager.add_skill_check(
+                    chat_key,
+                    str(event.user_id),
+                    character.name,
+                    skill_name,
+                    skill_value,
+                    result['roll'],
+                    result['level']
+                )
+            except Exception:
+                pass
+        else:
+            result = DiceRoller.roll_expression("1d20", is_check=True)
+            total = result.total
+            success = result.is_critical_success() or (not result.is_critical_failure() and total >= 15)
+            emoji = "✅" if success else "❌"
+            response = (
+                f"🎭 {character.name} 进行 {skill_name} 检定\n"
+                f"🎯 掷出: {total}\n"
+                f"{emoji} 结果: {'成功' if success else '失败'}"
+            )
+        
+        await finish_with(matcher, response)
+        return
+    except Exception as e:
+        if "FinishedException" in str(type(e)):
+            raise
+        else:
+            await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+        return
+
+
+@on_command("rav", aliases={"ravs"}, priority=5, block=True).handle()
+async def handle_opposed_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """对抗检定"""
+    content = args.extract_plain_text().strip()
+    if not content:
+        await finish_with(matcher, "用法: rav <技能1> vs <技能2>\n或: rav <技能1> <数值1> vs <技能2> <数值2>")
+        return
+    
+    try:
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        user_id = str(event.user_id)
+        character = await character_manager.get_character(user_id, chat_key)
+        
+        # 解析对抗表达式
+        # 格式1: rav 心理学 vs 欺骗
+        # 格式2: rav 心理学 80 vs 欺骗 60
+        import re
+        
+        # 尝试匹配带数值的格式
+        complex_match = re.match(r'^(.+?)\s+(\d+)\s+vs\s+(.+?)\s+(\d+)$', content, re.IGNORECASE)
+        if complex_match:
+            skill1 = complex_match.group(1).strip()
+            val1 = int(complex_match.group(2))
+            skill2 = complex_match.group(3).strip()
+            val2 = int(complex_match.group(4))
+        else:
+            # 尝试匹配简单格式
+            simple_match = re.match(r'^(.+?)\s+vs\s+(.+)$', content, re.IGNORECASE)
+            if simple_match:
+                skill1 = simple_match.group(1).strip()
+                skill2 = simple_match.group(2).strip()
+                
+                # 从角色卡获取技能值
+                s1 = character_manager.find_skill_by_alias(character, skill1) or skill1
+                s2 = character_manager.find_skill_by_alias(character, skill2) or skill2
+                val1 = character.skills.get(s1, 50)
+                val2 = character.skills.get(s2, 50)
+            else:
+                await finish_with(matcher, "❌ 格式错误，用法: rav <技能1> vs <技能2>")
+                return
+        
+        # 执行对抗检定
+        r1 = random.randint(1, 100)
+        r2 = random.randint(1, 100)
+        
+        def get_level(roll, value):
+            if roll == 1: return 5, "大成功"
+            if roll <= value // 5: return 4, "极难成功"
+            if roll <= value // 2: return 3, "困难成功"
+            if roll <= value: return 2, "成功"
+            if roll == 100 or (roll >= 96 and value < 50): return 0, "大失败"
+            return 1, "失败"
+        
+        lv1, name1 = get_level(r1, val1)
+        lv2, name2 = get_level(r2, val2)
+        
+        # 判定胜负
+        if lv1 > lv2:
+            winner = f"主动方 ({skill1})"
+        elif lv2 > lv1:
+            winner = f"被动方 ({skill2})"
+        else:
+            if val1 > val2:
+                winner = f"主动方 ({skill1}) - 技能值高"
+            elif val2 > val1:
+                winner = f"被动方 ({skill2}) - 技能值高"
+            else:
+                winner = "平局"
+        
+        response = (
+            f"⚔️ 对抗检定: {skill1} vs {skill2}\n"
+            f"🎯 主动方: {skill1}={val1} 掷出{r1} → {name1}\n"
+            f"🎯 被动方: {skill2}={val2} 掷出{r2} → {name2}\n"
+            f"🏆 结果: {winner}"
+        )
+        await finish_with(matcher, response)
+        return
+    except Exception as e:
+        if "FinishedException" in str(type(e)):
+            raise
+        else:
+            await finish_with(matcher, f"❌ 对抗检定失败: {str(e)}")
+        return
+
+
 # ============ 角色卡管理命令 ============
 
 @on_command("st", priority=5, block=True).handle()
@@ -1664,6 +1837,110 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
 
 # ============ CoC7 特殊指令 ============
 
+@on_command("coc", priority=5, block=True).handle()
+async def handle_coc_direct_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """直接CoC技能检定（无需角色卡）"""
+    content = args.extract_plain_text().strip()
+    if not content:
+        await finish_with(matcher, "用法: coc <技能值> [困难/极难]\n例如: coc 65 / coc 75 困难")
+        return
+    
+    try:
+        parts = content.split()
+        skill_value = int(parts[0])
+        
+        # 解析难度
+        difficulty = "normal"
+        if len(parts) >= 2:
+            diff_str = parts[1]
+            if diff_str in ["困难", "hard", "h"]:
+                difficulty = "hard"
+            elif diff_str in ["极难", "extreme", "e", "极"]:
+                difficulty = "extreme"
+        
+        # 应用难度修正
+        target_value = skill_value
+        if difficulty == "hard":
+            target_value = skill_value // 2
+        elif difficulty == "extreme":
+            target_value = skill_value // 5
+        
+        result = DiceRoller.roll_coc_check(target_value)
+        
+        response = f"🎲 CoC检定 (技能值: {skill_value})"
+        if difficulty != "normal":
+            response += f" [{difficulty}]"
+        response += (
+            f"\n🎯 掷出: {result['roll']} (目标值: {target_value})\n"
+            f"✨ 结果: {result['level']}"
+        )
+        
+        await finish_with(matcher, response)
+        return
+    except Exception as e:
+        await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+
+
+@on_command("madness", aliases={"mad"}, priority=5, block=True).handle()
+async def handle_madness(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """疯狂症状统一入口"""
+    content = args.extract_plain_text().strip().lower()
+    
+    # 临时疯狂
+    temp_symptoms = [
+        "失忆：调查员会发现自己只记得最后身处的安全地点，却没有任何来到这里的记忆。",
+        "假性残疾：调查员陷入了心理性的失明、失聪或躯体缺失感中。",
+        "暴力倾向：调查员陷入了六亲不认的暴力行为中。",
+        "偏执：调查员陷入了严重的偏执妄想之中，所有人都想要伤害他。",
+        "人际依赖：调查员因为一些原因而将某人当作了支柱。",
+        "昏厥：调查员当场昏倒。",
+        "逃避行为：调查员会用任何手段试图逃离现场。",
+        "歇斯底里：调查员表现出大笑、哭泣、嘶吼、害怕等极端情绪反应。"
+    ]
+    
+    # 总结疯狂
+    long_symptoms = [
+        "恐惧症：调查员患上了一种恐惧症，如幽闭恐惧症、恐高症等。",
+        "躁狂症：调查员患上了一种躁狂症，如盗窃癖、纵火癖等。",
+        "幻觉：调查员持续产生幻觉。",
+        "偏执：调查员持续处于偏执状态。",
+        "解离性障碍：调查员的人格发生分裂或记忆丧失。",
+        "强迫症：调查员产生了强迫性的行为模式。",
+        "抑郁症：调查员陷入了严重的抑郁状态。",
+        "创伤后应激障碍：调查员因恐怖经历而产生持续的心理创伤。"
+    ]
+    
+    # 不定疯狂（更多样化的症状）
+    indefinite_symptoms = [
+        "强烈的被迫害妄想，认为周围的一切都在针对自己。",
+        "无法控制的重复行为，如不断洗手、检查门锁等。",
+        "严重的解离症状，感觉自己不属于这个世界。",
+        "持续的噩梦和失眠，精神极度衰弱。",
+        "对某种颜色或声音的极度恐惧和排斥。",
+        "出现第二人格，完全不同于平时的自己。",
+        "失去对时间的感知，认为时间倒流或停滞。",
+        "坚信自己变成了某种非人生物。"
+    ]
+    
+    if content in ["临时", "临时疯狂", "temp", "temporary", "ti"]:
+        symptom = random.choice(temp_symptoms)
+        await finish_with(matcher, f"🌀 临时疯狂症状:\n{symptom}")
+    elif content in ["总结", "总结疯狂", "总结性", "long", "li"]:
+        symptom = random.choice(long_symptoms)
+        await finish_with(matcher, f"🌀 总结疯狂症状:\n{symptom}")
+    elif content in ["不定", "不定疯狂", "不定性", "indefinite"]:
+        symptom = random.choice(indefinite_symptoms)
+        await finish_with(matcher, f"🌀 不定疯狂症状:\n{symptom}")
+    else:
+        # 默认随机选择临时或总结
+        if random.choice([True, False]):
+            symptom = random.choice(temp_symptoms)
+            await finish_with(matcher, f"🌀 临时疯狂症状:\n{symptom}")
+        else:
+            symptom = random.choice(long_symptoms)
+            await finish_with(matcher, f"🌀 总结疯狂症状:\n{symptom}")
+
+
 @on_command("sc", priority=5, block=True).handle()
 async def handle_sanity_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
     """理智检定"""
@@ -1842,7 +2119,211 @@ async def handle_dnd_char_gen(matcher: Matcher, event: MessageEvent, args: Messa
         await finish_with(matcher, f"❌ 角色生成失败: {str(e)}")
 
 
+@on_command("check", priority=5, block=True).handle()
+async def handle_dnd_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """DND5E能力检定"""
+    content = args.extract_plain_text().strip()
+    if not content:
+        await finish_with(matcher, "用法: check <属性/技能> [DC] [熟练]\n例如: check 察觉 / check 力量 15 熟练")
+        return
+    
+    try:
+        user_id = str(event.user_id)
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        character = await character_manager.get_character(user_id, chat_key)
+        
+        parts = content.split()
+        skill_name = parts[0]
+        
+        # 解析DC
+        dc = 15
+        proficient = False
+        if len(parts) >= 2:
+            for p in parts[1:]:
+                if p.isdigit():
+                    dc = int(p)
+                elif p in ["熟练", "proficient", "prof"]:
+                    proficient = True
+        
+        # 查找技能
+        standard_name = character_manager.find_skill_by_alias(character, skill_name)
+        target_skill = standard_name if standard_name else skill_name
+        
+        # 计算加值
+        modifier = character_manager.get_dnd_skill_modifier(character, target_skill, proficient)
+        
+        # 执行检定
+        result = DiceRoller.roll_expression("1d20", is_check=True)
+        total = result.total + modifier
+        
+        if result.is_critical_success():
+            level = "大成功"
+            success = True
+        elif result.is_critical_failure():
+            level = "大失败"
+            success = False
+        else:
+            success = total >= dc
+            level = "成功" if success else "失败"
+        
+        prof_label = "(熟练)" if proficient else ""
+        emoji = "✨" if success else "❌"
+        response = (
+            f"🎲 {character.name} 进行 {target_skill} 检定 {prof_label}\n"
+            f"🎯 掷出: {result.total} + 加值{modifier} = {total} vs DC {dc}\n"
+            f"{emoji} 结果: {level}"
+        )
+        
+        await finish_with(matcher, response)
+        return
+    except Exception as e:
+        if "FinishedException" in str(type(e)):
+            raise
+        else:
+            await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+        return
+
+
+@on_command("save", aliases={"savingthrow"}, priority=5, block=True).handle()
+async def handle_dnd_save(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """DND5E豁免检定"""
+    content = args.extract_plain_text().strip()
+    if not content:
+        await finish_with(matcher, "用法: save <属性> [DC] [熟练]\n例如: save 体质 / save 智力 15 熟练")
+        return
+    
+    try:
+        user_id = str(event.user_id)
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
+        character = await character_manager.get_character(user_id, chat_key)
+        
+        parts = content.split()
+        ability = parts[0]
+        
+        # 解析DC和熟练
+        dc = 15
+        proficient = False
+        if len(parts) >= 2:
+            for p in parts[1:]:
+                if p.isdigit():
+                    dc = int(p)
+                elif p in ["熟练", "proficient", "prof"]:
+                    proficient = True
+        
+        # 映射中文属性到英文
+        ability_map = {"力量": "STR", "敏捷": "DEX", "体质": "CON", "智力": "INT", "感知": "WIS", "魅力": "CHA"}
+        ability_key = ability_map.get(ability, ability)
+        
+        # 计算豁免加值
+        modifier = character_manager.get_dnd_saving_throw_modifier(character, ability_key, proficient)
+        
+        # 执行检定
+        result = DiceRoller.roll_expression("1d20", is_check=True)
+        total = result.total + modifier
+        
+        if result.is_critical_success():
+            level = "大成功"
+            success = True
+        elif result.is_critical_failure():
+            level = "大失败"
+            success = False
+        else:
+            success = total >= dc
+            level = "成功" if success else "失败"
+        
+        prof_label = "(熟练)" if proficient else ""
+        emoji = "✨" if success else "❌"
+        response = (
+            f"🎲 {character.name} 进行 {ability} 豁免检定 {prof_label}\n"
+            f"🎯 掷出: {result.total} + 加值{modifier} = {total} vs DC {dc}\n"
+            f"{emoji} 结果: {level}"
+        )
+        
+        await finish_with(matcher, response)
+        return
+    except Exception as e:
+        if "FinishedException" in str(type(e)):
+            raise
+        else:
+            await finish_with(matcher, f"❌ 豁免检定失败: {str(e)}")
+        return
+
+
 # ============ 战斗与先攻指令 ============
+
+@on_command("init", aliases={"先攻"}, priority=5, block=True).handle()
+async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+    """先攻检定 - 简化版，直接掷d20+修正并加入先攻列表"""
+    content = args.extract_plain_text().strip()
+    user_id = str(event.user_id)
+    chat_key = str(getattr(event, "group_id", None) or event.user_id)
+    store_key = f"initiative.{chat_key}"
+    
+    try:
+        # 解析修正值和优势劣势
+        modifier = 0
+        advantage = False
+        disadvantage = False
+        
+        if content:
+            parts = content.split()
+            for p in parts:
+                if p.startswith("+") and p[1:].isdigit():
+                    modifier = int(p[1:])
+                elif p.startswith("-") and p[1:].isdigit():
+                    modifier = -int(p[1:])
+                elif p in ["优势", "advantage", "adv"]:
+                    advantage = True
+                elif p in ["劣势", "disadvantage", "dis"]:
+                    disadvantage = True
+        
+        # 获取角色
+        character = await character_manager.get_character(user_id, chat_key)
+        char_name = character.name
+        
+        # 如果是DND，自动加上先攻修正
+        if character.system == "DnD5e":
+            init_mod = character.secondary_attributes.get("先攻修正", 0)
+            modifier += init_mod
+        
+        # 掷先攻
+        if advantage and not disadvantage:
+            result = DiceRoller.roll_advantage("1d20")
+            init_val = result.total + modifier
+            adv_label = " (优势)"
+        elif disadvantage and not advantage:
+            result = DiceRoller.roll_disadvantage("1d20")
+            init_val = result.total + modifier
+            adv_label = " (劣势)"
+        else:
+            result = DiceRoller.roll_expression("1d20")
+            init_val = result.total + modifier
+            adv_label = ""
+        
+        # 获取当前先攻列表
+        init_data = await store.get(user_key=user_id, store_key=store_key)
+        init_list = json.loads(init_data) if init_data else []
+        
+        # 添加角色到先攻列表
+        entry = {"name": char_name, "init": init_val}
+        if advantage:
+            entry["advantage"] = True
+        if disadvantage:
+            entry["disadvantage"] = True
+        
+        init_list.append(entry)
+        init_list.sort(key=lambda x: x["init"], reverse=True)
+        await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+        
+        response = f"⚔️ {char_name} 先攻: {init_val}{adv_label}"
+        if modifier != 0:
+            response += f" (d20:{result.total} {'+' if modifier >= 0 else ''}{modifier})"
+        
+        await finish_with(matcher, response)
+        return
+    except Exception as e:
+        await finish_with(matcher, f"❌ 先攻检定失败: {str(e)}")
+
 
 @on_command("ri", priority=5, block=True).handle()
 async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
@@ -2361,6 +2842,27 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Messag
 
 # ============ 其他实用命令 ============
 
+@on_command("bot", priority=5, block=True).handle()
+async def handle_bot_status(matcher: Matcher, event: MessageEvent):
+    """机器人状态"""
+    try:
+        response = (
+            "🤖 TRPG骰子系统状态\n"
+            "=" * 30 + "\n"
+            f"📦 版本: v2.0.0\n"
+            f"🎲 骰子引擎: 已加载\n"
+            f"📋 角色系统: COC7 / DND5E / WoD\n"
+            f"📚 文档系统: {'已启用' if config.ENABLE_VECTOR_DB else '已禁用'}\n"
+            f"📊 战报系统: 已启用\n"
+            f"🧠 提示词注入: 6个注入点\n"
+            "=" * 30 + "\n"
+            "💡 输入 help 查看完整命令列表"
+        )
+        await finish_with(matcher, response)
+    except Exception as e:
+        await finish_with(matcher, f"❌ 获取状态失败: {str(e)}")
+
+
 @on_command("jrrp", priority=5, block=True).handle()
 async def handle_daily_luck(matcher: Matcher, event: MessageEvent):
     """今日人品"""
@@ -2404,8 +2906,13 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 • ra <技能> - 技能检定 (支持b/p奖惩骰前缀)
 • ra 困难<技能> - 困难检定
 • ra 极难<技能> - 极难检定
+• rah <技能> - 隐藏技能检定
+• rav <技能1> vs <技能2> - 对抗检定
+• coc <技能值> [困难/极难] - 直接CoC检定
 • sc <成功损失>/<失败损失> - 理智检定
 • en <技能> - 技能成长
+• check <属性/技能> [DC] [熟练] - DND能力检定
+• save <属性> [DC] [熟练] - DND豁免检定
 • cocchar [名字] - 生成CoC7角色
 • dndchar [名字] - 生成DND5E角色
 
@@ -2427,6 +2934,7 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 • hp <当前>/<最大> - 设置HP
 
 ⚔️ 战斗:
+• init [+修正] [优势/劣势] - 先攻检定
 • ri - 加入先攻
 • ri +<名字> - 添加角色先攻
 • ri list - 查看先攻
@@ -2445,11 +2953,13 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 
 🍀 其他:
 • me <动作> - 角色动作
+• madness [临时/总结/不定] - 疯狂症状
 • ti - 临时疯狂症状
 • li - 总结疯狂症状
 • name [参数] - 随机姓名 (如: name 男 3, name en)
 • draw [数量] - 抽卡
 • jrrp - 今日人品
+• bot - 机器人状态
 • help - 显示帮助"""
     
     await finish_with(matcher, help_text)
