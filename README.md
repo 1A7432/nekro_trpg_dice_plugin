@@ -152,6 +152,50 @@ pip install python-docx   # Word文档支持
 3. 插件配置 → `MODULE_INIT_MAX_INPUT_TOKENS` → 默认 80 万字符（适配 1M 上下文）
 4. 插件配置 → `MODULE_INIT_MAX_OUTPUT_TOKENS` → 默认 32K（充分利用 DeepSeek V4 的 384K 输出能力）
 
+### 模组知识池系统（全文分析）
+
+上传 module/story 类型文档后，插件会自动调用 LLM 对模组**全文**进行结构化分析，提取场景、NPC、线索、威胁、时间线、幕后真相等。分片(chunk)仅用于向量检索，初始化时合并全文分析。
+
+**AI KP 查询工具**：
+
+| 工具 | 用途 |
+|------|------|
+| `get_module_summary()` | 开局前获取全局概要：summary/background/truths/timeline/威胁清单/场景清单/NPC清单 |
+| `list_module_elements("scenes")` | 列出模组元素名称清单：scenes/npcs/clues/threats/timeline |
+| `get_module_element_detail("scenes", "场景名")` | 获取单个场景/NPC/线索/威胁的完整详情（不截断） |
+| `query_knowledge_pool("关键词", "keeper")` | 关键词搜索模组知识池 |
+
+**AI KP 工作流**：
+1. 开局前 `get_module_summary()` 建立全局认知
+2. `list_module_elements("scenes")` 查看场景/NPC/威胁清单
+3. 玩家行动到哪，`get_module_element_detail` 查对应详情
+4. 发现线索后 `unlock_for_player("clues", "线索名")` 记录到玩家知识池
+5. 遇战斗先查 `threats` 的 stats/san_loss/attacks，确认数值后再要求掷骰
+
+**AI KP 自由笔记**（记录即兴创作和世界状态变更）：
+
+| 工具 | 用途 |
+|------|------|
+| `kp_note("add", "world_changes", "描述")` | 记录世界变更（门被炸开、NPC死亡等） |
+| `kp_note("add", "npc_status", "描述")` | 记录NPC状态更新 |
+| `kp_note("add", "improvised_scenes", "描述")` | 记录即兴创作的新场景 |
+| `kp_note("list", "world_changes", "")` | 查看某分类的全部笔记 |
+
+**AI KP 时间管理**：
+
+| 工具 | 用途 |
+|------|------|
+| `game_clock("show")` | 查看当前游戏时间和日程 |
+| `game_clock("set", "1926年3月15日 14:00")` | 设定游戏时间 |
+| `game_clock("advance", "+2小时")` | 推进游戏时间 |
+| `game_clock("add_event", "调查员抵达精神病院")` | 添加日程事件 |
+
+**角色状态跟踪**：
+
+| 工具 | 用途 |
+|------|------|
+| `update_character_status('["中毒(每回合1HP)", "恐惧(SAN-10)"]')` | 更新角色状态效果，每次对话自动注入AI上下文 |
+
 ### 基础使用
 
 #### 掷骰子
@@ -231,11 +275,21 @@ session end                      # 生成战报
 ## 🛠️ 配置选项
 
 ```python
-# 在插件配置中调整
+# 骰子系统
 MAX_DICE_COUNT = 100        # 最大骰子数量
 MAX_DICE_SIDES = 1000       # 最大骰子面数
+
+# 文档与向量检索
 ENABLE_VECTOR_DB = True     # 启用文档功能
-CHUNK_SIZE = 1000          # 文档分块大小
+CHUNK_SIZE = 4000           # 文档分块大小（字符）
+CHUNK_OVERLAP = 800         # 分块重叠大小
+MAX_SEARCH_RESULTS = 15     # 向量检索最大结果数
+
+# 模组全文分析（需要 1M 上下文模型）
+MODULE_INIT_MODEL_GROUP = "default"        # 分析模组的 LLM 模型组（推荐 deepseek-v4）
+MODULE_INIT_MAX_INPUT_TOKENS = 800000      # 最大输入字符数（适配 1M 上下文）
+MODULE_INIT_MAX_OUTPUT_TOKENS = 32768      # 最大输出 token（结构化数据需要 4K-32K）
+MODULE_INIT_AUTO_START = True              # 上传模组后自动初始化
 
 # 插件激活调度（由系统管理）
 allow_sleep = True          # 允许插件休眠
@@ -258,17 +312,18 @@ pip install -r requirements.txt
 
 ```
 trpg_dice/
-├── __init__.py           # 插件入口
-├── plugin.py             # 主插件文件
-├── core/                 # 核心模块
-│   ├── dice_engine.py    # 骰子引擎
-│   ├── character_manager.py  # 角色管理
-│   ├── document_manager.py   # 文档管理
-│   ├── battle_report.py      # 战报系统
-│   └── prompt_injection.py   # 提示词注入
-├── templates/            # 角色模板
-├── docs/                 # 文档
-└── examples/             # 示例
+├── __init__.py              # 插件入口
+├── plugin.py                # 主插件文件（36个沙盒方法）
+├── core/                    # 核心模块
+│   ├── dice_engine.py       # 骰子引擎
+│   ├── character_manager.py # 角色管理
+│   ├── document_manager.py  # 文档管理（向量存储）
+│   ├── module_initializer.py # 模组全文分析引擎
+│   ├── battle_report.py     # 战报系统
+│   └── prompt_injection.py  # 提示词注入（自动注入角色状态/游戏时间/世界变更）
+├── templates/               # 角色模板
+├── docs/                    # 文档
+└── examples/                # 示例
 ```
 
 ## 📄 许可证
