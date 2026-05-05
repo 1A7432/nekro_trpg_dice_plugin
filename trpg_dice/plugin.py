@@ -1086,42 +1086,6 @@ async def search_documents(_ctx: AgentCtx, query: str, doc_type: Optional[str] =
         return error_msg
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "answer_document_question", "KP基于文档内部查询（仅限AI观察，勿直接输出给玩家）")
-async def answer_document_question(_ctx: AgentCtx, question: str) -> str:
-    """
-    KP基于文档进行内部查询——返回的是守秘人(KP)备课资料。
-    ⚠️ 这是AGENT方法，查询结果只会返回给AI观察，不会直接进入对话输出。
-    AI必须消化整理后，只转化为调查员视角可感知的信息再输出，绝不可直接转述原文给玩家。
-    适用于查询规则条文、模组设定、NPC背景等，但输出前必须过滤掉幕后信息。
-    
-    Args:
-        question: 查询问题
-    
-    Returns:
-        文档相关内容（KP-only内部资料）
-    """
-    if not config.ENABLE_VECTOR_DB:
-        return "❌ 文档功能未启用"
-    
-    if not question.strip():
-        return "❌ 请输入你的问题"
-    
-    try:
-        chat_key = _ctx.chat_key
-
-        # 获取相关文档上下文
-        context = await vector_db.get_document_context(question, chat_key)
-        
-        if not context:
-            return "❌ 没有找到相关的文档内容来回答这个问题"
-        
-        # 这里可以集成AI来生成更好的回答
-        # 目前先返回相关的文档片段
-        return f"🤖 基于文档的相关内容:\n{context}\n\n💡 以上是从您上传的文档中找到的相关信息"
-        
-    except Exception as e:
-        return f"❌ 问答失败: {str(e)}"
-
 
 @plugin.mount_sandbox_method(SandboxMethodType.AGENT, "random_madness", "随机生成疯狂症状")
 async def random_madness(_ctx: AgentCtx, madness_type: str = "temp") -> str:

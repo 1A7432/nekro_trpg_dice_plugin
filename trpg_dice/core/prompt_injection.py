@@ -54,7 +54,6 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "### 文档系统（KP内部工具，检索结果不可直接告知玩家）",
         "• upload_document(file_path, doc_type='module') - 上传文档",
         "• search_documents(query, doc_type=None, limit=5) - KP检索模组文档（AGENT:结果只给AI观察，必须消化后转化为调查员视角再输出）",
-        "• answer_document_question(question) - KP基于文档内部查询（AGENT:结果只给AI观察，必须过滤幕后信息后再输出）",
         "• list_my_documents(doc_type=None) - 列出文档",
         "",
         "## 行为准则:",
@@ -305,7 +304,7 @@ async def inject_document_context_prompt(_ctx, vector_db, enable_vector_db: bool
                 prompt_parts.append(text)
                 prompt_parts.append("")
 
-            prompt_parts.append("💡 你可以使用 search_documents 或 answer_document_question 工具查询更多文档内容")
+            prompt_parts.append("💡 你可以使用 search_documents 工具查询更多文档内容")
 
             return "\n".join(prompt_parts)
 
