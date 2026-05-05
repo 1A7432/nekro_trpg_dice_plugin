@@ -640,7 +640,7 @@ async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "kee
     用于跑团时主动查询某个NPC的真相、某个场景的幕后设定、已解锁线索等。
 
     Args:
-        query: 搜索关键词，如"NPC名字"、"场景名称"、"线索"等
+        query: 搜索关键词，如"NPC名字"、"场景名称"、"线索"等（支持多个关键词空格分隔，任意匹配即可）
         pool_type: "keeper" 查询守秘人知识池（幕后真相），"player" 查询玩家已解锁知识池
 
     Returns:
@@ -657,7 +657,12 @@ async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "kee
             return f"❌ 当前没有{'守秘人' if pool_type == 'keeper' else '玩家'}知识池，请先上传模组并初始化"
 
         pool = json.loads(pool_data)
-        query_lower = query.lower()
+        # 分词：按空格/逗号/顿号分词，过滤空串和停用词
+        stop_words = {"的", "了", "是", "在", "和", "或", "与", "及", "主要", "初始"}
+        query_tokens = [t.strip() for t in re.split(r"[\s,，、]+", query.lower()) if t.strip() and t.strip() not in stop_words and len(t.strip()) >= 2]
+        if not query_tokens:
+            query_tokens = [query.lower().strip()]
+
         matches = []
 
         for category, items in pool.items():
@@ -667,8 +672,10 @@ async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "kee
                     str(item.get("summary", "")),
                     " ".join(str(k) for k in item.get("keywords", [])),
                     " ".join(str(t) for t in item.get("spoiler_tags", [])),
+                    str(item.get("tags", "")),
                 ]).lower()
-                if query_lower in searchable:
+                # OR 匹配：任意一个 token 命中即算匹配
+                if any(token in searchable for token in query_tokens):
                     matches.append({"category": category, **item})
 
         if not matches:
@@ -695,6 +702,53 @@ async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "kee
         return "\n".join(lines)
     except Exception as e:
         return f"❌ 查询知识池失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "inspect_knowledge_pool", "检查知识池原始内容（KP-only，仅限AI观察）")
+async def inspect_knowledge_pool(_ctx: AgentCtx, pool_type: str = "keeper") -> str:
+    """
+    直接输出知识池的原始 JSON 内容，用于诊断知识池结构和数据问题。
+    当 query_knowledge_pool 搜不到内容时，可用此方法查看知识池里实际有什么。
+
+    Args:
+        pool_type: "keeper" 或 "player"
+    """
+    chat_key = _ctx.chat_key
+    try:
+        if pool_type not in ("keeper", "player"):
+            return "❌ pool_type 必须是 'keeper' 或 'player'"
+
+        store_key = f"module_{pool_type}_pool.{chat_key}"
+        pool_data = await store.get(user_key="", store_key=store_key)
+        if not pool_data:
+            return f"❌ 当前没有{'守秘人' if pool_type == 'keeper' else '玩家'}知识池"
+
+        pool = json.loads(pool_data)
+        total_items = sum(len(v) for v in pool.values())
+
+        lines = [
+            f"{'🔴 守秘人知识池' if pool_type == 'keeper' else '🟢 玩家知识池'} 原始内容（共 {total_items} 条）",
+            "",
+        ]
+
+        for category, items in pool.items():
+            if not items:
+                continue
+            lines.append(f"## {category} ({len(items)} 条)")
+            for item in items:
+                lines.append(f"- title: {item.get('title', '?')}")
+                lines.append(f"  summary: {item.get('summary', '')}")
+                if item.get("keywords"):
+                    lines.append(f"  keywords: {item.get('keywords')}")
+                if item.get("spoiler_tags"):
+                    lines.append(f"  spoiler_tags: {item.get('spoiler_tags')}")
+                if item.get("tags"):
+                    lines.append(f"  tags: {item.get('tags')}")
+                lines.append("")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"❌ 检查知识池失败: {str(e)}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
