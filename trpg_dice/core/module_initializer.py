@@ -117,6 +117,7 @@ class ModuleInitializer:
     "scenes": [
         {{
             "name": "场景名称（如：废弃医院大厅）",
+            "focus": "场景当前焦点（探索/交涉/追逐/战斗/恐怖/潜伏/休整，选最贴切的1个）",
             "description": "玩家视角可见的场景描述（外观、陈设、氛围，不含剧透）",
             "keeper_notes": "守秘人幕后信息（隐藏房间、陷阱、NPC真实位置、危险提示等，不可告知玩家）",
             "npcs_present": ["在场NPC名称列表"],
@@ -262,6 +263,7 @@ class ModuleInitializer:
             keeper_pool["scenes"].append(scene)
             player_pool["scenes"].append({
                 "name": scene.get("name", ""),
+                "focus": scene.get("focus", "探索"),
                 "description": scene.get("description", ""),
                 "npcs_present": scene.get("npcs_present", []),
                 "clues": [

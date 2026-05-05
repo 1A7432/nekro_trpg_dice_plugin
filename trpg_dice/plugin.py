@@ -1021,6 +1021,21 @@ async def unlock_for_player(_ctx: AgentCtx, element_type: str, name: str) -> str
 
         player[element_type].append(unlocked)
         await store.set(user_key="", store_key=f"module_player_pool.{chat_key}", value=json.dumps(player, ensure_ascii=False))
+
+        # 同步追加到已确认事实
+        try:
+            notes_key = f"kp_notes.{chat_key}"
+            notes_data = await store.get(user_key="", store_key=notes_key)
+            notes = json.loads(notes_data) if notes_data else {}
+            notes.setdefault("confirmed_facts", [])
+            clock_data = await store.get(user_key="", store_key=f"game_clock.{chat_key}")
+            game_time = json.loads(clock_data).get("current_time", "?") if clock_data else "?"
+            fact_content = f"[{game_time}] 解锁{element_type}: {target_name}"
+            notes["confirmed_facts"].append({"time": game_time, "content": fact_content})
+            await store.set(user_key="", store_key=notes_key, value=json.dumps(notes, ensure_ascii=False))
+        except Exception:
+            pass
+
         return f"✅ 已解锁 {element_type}: {target_name} → 玩家知识池"
     except Exception as e:
         return f"❌ 解锁失败: {str(e)}"
@@ -1033,9 +1048,9 @@ async def kp_note(_ctx: AgentCtx, action: str, category: str, content: str = "")
     与模组知识池（只读官方设定）分开，专门存放跑团过程中的动态内容。
 
     Args:
-        action: add(追加笔记) / update(更新) / delete(删除) / list(列出该分类所有笔记)
-        category: 笔记分类。建议：improvised_scenes(即兴场景), npc_status(NPC状态), world_changes(世界变更), player_actions(玩家行为), kp_reasoning(KP推理)
-        content: 笔记内容（action=list 时可留空）
+        action: set(设置单值状态) / add(追加笔记) / update(更新最后一条) / delete(删除分类) / list(列出该分类所有笔记)
+        category: 笔记分类。建议：current_scene(当前场景), current_focus(当前焦点), improvised_scenes(即兴场景), npc_status(NPC状态), world_changes(世界变更), player_actions(玩家行为), kp_reasoning(KP推理)
+        content: 笔记内容。action=set 时传入单值字符串（如场景名），action=add 时传入笔记内容
     """
     chat_key = _ctx.chat_key
     store_key = f"kp_notes.{chat_key}"
@@ -1043,7 +1058,13 @@ async def kp_note(_ctx: AgentCtx, action: str, category: str, content: str = "")
         notes_data = await store.get(user_key="", store_key=store_key)
         notes = json.loads(notes_data) if notes_data else {}
 
-        if action == "add":
+        if action == "set":
+            # 用于设置单值状态（如 current_scene / current_focus）
+            notes[category] = content
+            await store.set(user_key="", store_key=store_key, value=json.dumps(notes, ensure_ascii=False))
+            return f"✅ 已设置 {category} = {content}"
+
+        elif action == "add":
             notes.setdefault(category, [])
             note_item = {
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -1167,6 +1188,13 @@ async def update_character_status(_ctx: AgentCtx, status_effects: str) -> str:
             store_key=f"character_status.{chat_key}",
             value=json.dumps(effects, ensure_ascii=False),
         )
+        # 同步到全队名册
+        try:
+            char = await character_manager.get_character(user_id, chat_key)
+            if char and char.name != "default":
+                await character_manager.sync_party_roster(chat_key, char, status_effects=effects)
+        except Exception:
+            pass
         return f"✅ 角色状态已更新: {', '.join(effects)}"
     except Exception as e:
         return f"❌ 更新状态失败: {str(e)}"

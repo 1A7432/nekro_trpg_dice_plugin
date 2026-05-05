@@ -537,6 +537,58 @@ class CharacterManager:
         # 同时更新活跃角色和角色列表
         await self.set_active_character(user_id, chat_key, character.name)
         await self._update_char_list(user_id, chat_key, character.name, add=True)
+        # 同步到全队名册
+        await self.sync_party_roster(chat_key, character)
+
+    async def sync_party_roster(self, chat_key: str, character: CharacterSheet, status_effects: list = None):
+        """同步角色状态到全队名册（party_roster），供战情面板全团显示"""
+        roster_key = f"party_roster.{chat_key}"
+        try:
+            roster_data = await self.store.get(user_key="", store_key=roster_key)
+            roster = json.loads(roster_data) if roster_data else {}
+        except Exception:
+            roster = {}
+
+        attrs = character.attributes
+        if character.system == "CoC":
+            status_summary = {
+                "name": character.name,
+                "system": character.system,
+                "HP": f"{attrs.get('HP', '?')}/{attrs.get('HPMAX', '?')}",
+                "SAN": f"{attrs.get('SAN', '?')}/{attrs.get('SANMAX', '?')}",
+                "MP": f"{attrs.get('MP', '?')}/{attrs.get('MPMAX', '?')}",
+                "occupation": character.occupation,
+                "status_effects": status_effects if status_effects else [],
+                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            }
+        else:
+            sec = getattr(character, 'secondary_attributes', {})
+            status_summary = {
+                "name": character.name,
+                "system": character.system,
+                "HP": f"{attrs.get('HP', '?')}",
+                "AC": sec.get('护甲等级', '?'),
+                "status_effects": status_effects if status_effects else [],
+                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            }
+
+        roster[character.name] = status_summary
+        try:
+            await self.store.set(user_key="", store_key=roster_key, value=json.dumps(roster, ensure_ascii=False))
+        except Exception:
+            pass
+
+    async def get_party_roster(self, chat_key: str) -> List[Dict[str, Any]]:
+        """获取全队名册列表"""
+        roster_key = f"party_roster.{chat_key}"
+        try:
+            roster_data = await self.store.get(user_key="", store_key=roster_key)
+            if roster_data:
+                roster = json.loads(roster_data)
+                return list(roster.values())
+        except Exception:
+            pass
+        return []
 
     async def set_active_character(self, user_id: str, chat_key: str, char_name: str):
         """设置当前激活的角色卡"""

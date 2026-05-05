@@ -64,7 +64,7 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• get_module_element_detail(element_type, name) - 获取单个场景/NPC/线索/威胁的完整详情（AGENT:结果只给AI观察，不截断）",
         "• query_knowledge_pool(query, pool_type='keeper') - 关键词搜索模组知识池（AGENT:结果只给AI观察）",
         "• unlock_for_player(element_type, name) - 玩家发现线索/NPC/场景后，解锁到玩家知识池（BEHAVIOR）",
-        "• kp_note(action, category, content) - KP 自由笔记：记录即兴场景、世界状态变更、NPC状态更新、玩家行为（BEHAVIOR）",
+        "• kp_note(action, category, content) - KP 自由笔记：set 设置当前场景/焦点，add 记录世界变更/NPC状态/即兴场景（BEHAVIOR）",
         "• update_knowledge_pool(player_visible_patch, keeper_only_patch) - 增量更新知识池（BEHAVIOR，传入局部JSON自动合并）",
         "• inspect_knowledge_pool(pool_type='keeper') - dump 知识池全部原始内容（AGENT:内容过多时优先用 list + get_detail）",
         "• search_documents(query, doc_type=None, limit=5) - 向量检索原始文档（AGENT:知识池查不到细节时再用）",
@@ -93,136 +93,158 @@ async def inject_trpg_system_prompt(_ctx) -> str:
 
 async def inject_game_state_prompt(_ctx, character_manager, store) -> str:
     """
-    当前游戏状态提示词注入
-    提供角色卡、先攻状态等实时游戏信息
+    极简战情面板注入（支持全团多角色）
+    每轮对话自动注入当前场景、时间、全团角色状态、NPC、线索、世界变更等核心信息。
     """
 
     try:
-        prompt_parts = ["# 当前游戏状态"]
         user_id = _get_user_id(_ctx)
+        chat_key = _ctx.chat_key
+        lines = ["═══════════════════════════════════════", "【战情面板】", "═══════════════════════════════════════"]
 
-        # 注入游戏时间
+        # ── 场景 & 时间 & 焦点 ──
+        scene_name = "未知"
+        focus = "探索"
+        clock_time = "未设定"
+
         try:
-            clock_data = await store.get(user_key="", store_key=f"game_clock.{_ctx.chat_key}")
+            clock_data = await store.get(user_key="", store_key=f"game_clock.{chat_key}")
             if clock_data:
                 clock = json.loads(clock_data)
-                prompt_parts.extend([
-                    "",
-                    f"🕐 当前游戏时间: {clock.get('current_time', '未设定')}",
-                ])
+                clock_time = clock.get("current_time", "未设定")
         except Exception:
             pass
 
-        # 获取当前活跃角色信息
         try:
-            character = await character_manager.get_character(user_id, _ctx.chat_key)
-            if character and character.name != "default":
-                prompt_parts.extend([
-                    "",
-                    f"## 当前角色: {character.name}",
-                    f"• 游戏系统: {character.system}",
-                ])
-
-                if character.system == "CoC":
-                    attrs = character.attributes
-                    prompt_parts.extend([
-                        f"• STR:{attrs.get('STR', '?')} CON:{attrs.get('CON', '?')} DEX:{attrs.get('DEX', '?')} INT:{attrs.get('INT', '?')}",
-                        f"• POW:{attrs.get('POW', '?')} APP:{attrs.get('APP', '?')} SIZ:{attrs.get('SIZ', '?')} EDU:{attrs.get('EDU', '?')}",
-                        f"• HP: {attrs.get('HP', '?')}/{attrs.get('HPMAX', '?')} | SAN: {attrs.get('SAN', '?')}/{attrs.get('SANMAX', '?')} | MP: {attrs.get('MP', '?')}/{attrs.get('MPMAX', '?')}",
-                    ])
-                    if character.occupation:
-                        prompt_parts.append(f"• 职业: {character.occupation}")
-                    # 显示高技能值
-                    if character.skills:
-                        top_skills = sorted(character.skills.items(), key=lambda x: x[1], reverse=True)[:8]
-                        skill_str = ", ".join([f"{k}:{v}" for k, v in top_skills])
-                        prompt_parts.append(f"• 主要技能: {skill_str}")
-                else:
-                    attrs = character.attributes
-                    prompt_parts.append(f"• 属性: STR:{attrs.get('STR')} DEX:{attrs.get('DEX')} CON:{attrs.get('CON')} INT:{attrs.get('INT')} WIS:{attrs.get('WIS')} CHA:{attrs.get('CHA')}")
-                    sec = getattr(character, 'secondary_attributes', {})
-                    if sec:
-                        prompt_parts.append(f"• 状态: HP:{sec.get('生命值', '?')} AC:{sec.get('护甲等级', '?')}")
-
-                # 携带物品详情
-                if character.equipment:
-                    prompt_parts.append(f"• 携带物品 ({len(character.equipment)} 件): {', '.join(character.equipment)}")
-                else:
-                    prompt_parts.append("• 携带物品: 无")
-
-                # 角色状态效果（中毒、恐惧、受伤等）
-                try:
-                    status_data = await store.get(user_id=user_id, store_key=f"character_status.{_ctx.chat_key}")
-                    if status_data:
-                        effects = json.loads(status_data)
-                        if effects:
-                            prompt_parts.append(f"• ⚠️ 状态效果: {' | '.join(effects)}")
-                        else:
-                            prompt_parts.append("• 状态效果: 无")
-                    else:
-                        prompt_parts.append("• 状态效果: 无")
-                except Exception:
-                    pass
-        except Exception:
-            pass  # 忽略角色卡获取错误
-
-        # 注入 KP 笔记中的 world_changes 和 npc_status
-        try:
-            notes_data = await store.get(user_key="", store_key=f"kp_notes.{_ctx.chat_key}")
+            notes_data = await store.get(user_key="", store_key=f"kp_notes.{chat_key}")
             if notes_data:
                 notes = json.loads(notes_data)
-                injected_any = False
-                
-                # 世界变更（最高优先级，每次必注入）
-                world_changes = notes.get("world_changes", [])
-                if world_changes:
-                    prompt_parts.extend([
-                        "",
-                        "## 世界状态变更（来自 KP 笔记）",
-                    ])
-                    for item in world_changes[-5:]:  # 最近5条
-                        prompt_parts.append(f"• {item.get('time', '?')}: {item.get('content', '')}")
-                    injected_any = True
-                
-                # NPC 状态变更
-                npc_status = notes.get("npc_status", [])
-                if npc_status:
-                    prompt_parts.extend([
-                        "",
-                        "## NPC 状态更新（来自 KP 笔记）",
-                    ])
-                    for item in npc_status[-5:]:
-                        prompt_parts.append(f"• {item.get('time', '?')}: {item.get('content', '')}")
-                    injected_any = True
-                
-                if injected_any:
-                    prompt_parts.append("• 更多笔记可用 kp_note('list', '分类名') 查询")
+                scene_name = notes.get("current_scene", "未知")
+                focus = notes.get("current_focus", "探索")
         except Exception:
             pass
 
-        # 检查先攻状态
+        lines.extend([
+            f"🎬 当前场景: {scene_name}",
+            f"⏰ 游戏时间: {clock_time}",
+            f"🎯 当前焦点: {focus}",
+        ])
+
+        # ── 全团角色状态（从 party_roster 读取） ──
         try:
-            init_data = await store.get(user_key=user_id, store_key=f"initiative.{_ctx.chat_key}")
+            roster = await character_manager.get_party_roster(chat_key)
+            if roster:
+                lines.append("")
+                lines.append("👤 调查员状态:")
+                for member in roster:
+                    name = member.get("name", "?")
+                    system = member.get("system", "CoC")
+                    if system == "CoC":
+                        hp = member.get("HP", "?/?")
+                        san = member.get("SAN", "?/?")
+                        mp = member.get("MP", "?/?")
+                        status_eff = member.get("status_effects", [])
+                        eff_str = " | ".join(status_eff) if status_eff else "无"
+                        lines.append(f"   • {name} | HP:{hp} SAN:{san} MP:{mp} | {eff_str}")
+                    else:
+                        hp = member.get("HP", "?")
+                        ac = member.get("AC", "?")
+                        status_eff = member.get("status_effects", [])
+                        eff_str = " | ".join(status_eff) if status_eff else "无"
+                        lines.append(f"   • {name} | HP:{hp} AC:{ac} | {eff_str}")
+            else:
+                # 回退：只显示当前角色
+                character = await character_manager.get_character(user_id, chat_key)
+                if character and character.name != "default":
+                    attrs = character.attributes
+                    if character.system == "CoC":
+                        hp = f"{attrs.get('HP', '?')}/{attrs.get('HPMAX', '?')}"
+                        san = f"{attrs.get('SAN', '?')}/{attrs.get('SANMAX', '?')}"
+                        mp = f"{attrs.get('MP', '?')}/{attrs.get('MPMAX', '?')}"
+                        lines.append(f"👤 {character.name} | HP:{hp} SAN:{san} MP:{mp}")
+                    else:
+                        hp = attrs.get("HP", "?")
+                        ac = getattr(character, 'secondary_attributes', {}).get("护甲等级", "?")
+                        lines.append(f"👤 {character.name} | HP:{hp} AC:{ac}")
+        except Exception:
+            pass
+
+        # ── 活跃NPC（最近3条） ──
+        try:
+            notes_data = await store.get(user_key="", store_key=f"kp_notes.{chat_key}")
+            if notes_data:
+                notes = json.loads(notes_data)
+                npc_items = notes.get("npc_status", [])[-3:]
+                if npc_items:
+                    lines.append("")
+                    lines.append("👥 活跃NPC:")
+                    for item in npc_items:
+                        lines.append(f"   • {item.get('content', '')}")
+        except Exception:
+            pass
+
+        # ── 已确认事实（最近5条） ──
+        try:
+            notes_data = await store.get(user_key="", store_key=f"kp_notes.{chat_key}")
+            if notes_data:
+                notes = json.loads(notes_data)
+                facts = notes.get("confirmed_facts", [])[-5:]
+                if facts:
+                    lines.append("")
+                    lines.append("📌 已确认事实:")
+                    for item in facts:
+                        lines.append(f"   • {item.get('content', '')}")
+        except Exception:
+            pass
+
+        # ── 进行中线索（从 player_pool 读取） ──
+        try:
+            player_data = await store.get(user_key="", store_key=f"module_player_pool.{chat_key}")
+            if player_data:
+                player = json.loads(player_data)
+                clues = player.get("clues", [])
+                if clues:
+                    lines.append("")
+                    lines.append("🔍 进行中线索:")
+                    for c in clues[-5:]:
+                        desc = c.get("description", "")[:40]
+                        lines.append(f"   • {c.get('name', '?')}: {desc}")
+        except Exception:
+            pass
+
+        # ── 世界变更（最近3条） ──
+        try:
+            notes_data = await store.get(user_key="", store_key=f"kp_notes.{chat_key}")
+            if notes_data:
+                notes = json.loads(notes_data)
+                changes = notes.get("world_changes", [])[-3:]
+                if changes:
+                    lines.append("")
+                    lines.append("🌍 世界变更:")
+                    for item in changes:
+                        lines.append(f"   • {item.get('content', '')}")
+        except Exception:
+            pass
+
+        # ── 先攻状态（战斗中才显示） ──
+        try:
+            init_data = await store.get(user_key=user_id, store_key=f"initiative.{chat_key}")
             if init_data:
                 initiative_list = json.loads(init_data)
                 if initiative_list:
-                    prompt_parts.extend([
-                        "",
-                        "## 战斗状态: 先攻追踪中",
-                        f"• 当前先攻顺序 ({len(initiative_list)}个角色):",
-                    ])
+                    lines.append("")
+                    lines.append("⚔️ 先攻顺序:")
                     for i, entry in enumerate(initiative_list[:5], 1):
-                        marker = " 👈 当前回合" if i == 1 else ""
-                        prompt_parts.append(f"  {i}. {entry['name']}: {entry['init']}{marker}")
-                    prompt_parts.append("• 使用 initiative_tracker 工具管理先攻")
+                        marker = " 👈" if i == 1 else ""
+                        lines.append(f"   {i}. {entry['name']} ({entry['init']}){marker}")
         except Exception:
             pass
 
-        return "\n".join(prompt_parts)
+        lines.append("═══════════════════════════════════════")
+        return "\n".join(lines)
 
     except Exception:
-        return ""  # 发生错误时返回空字符串
-
+        return ""
 
 async def inject_system_expertise_prompt(_ctx, character_manager) -> str:
     """
