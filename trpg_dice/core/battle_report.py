@@ -560,7 +560,8 @@ class BattleReportManager:
         name_key = f"session_name.{chat_key}.current"
         session_name = await self.store.get(store_key=name_key)
         if not session_name:
-            session_name = f"跑团-{datetime.fromtimestamp(record.start_time).strftime(\'%Y%m%d-%H%M\')}"
+            dt_str = datetime.fromtimestamp(record.start_time).strftime('%Y%m%d-%H%M')
+            session_name = f"跑团-{dt_str}"
         text_report = self.generator.generate_report_text(record, session_name)
         markdown_report = self.generator.generate_markdown_report(record, session_name)
         return text_report, markdown_report, session_name
@@ -573,6 +574,7 @@ class BattleReportManager:
         name_key = f"session_name.{chat_key}.latest"
         session_name = await self.store.get(store_key=name_key)
         if not session_name:
-            session_name = f"跑团-{datetime.fromtimestamp(latest_record.start_time).strftime(\'%Y%m%d-%H%M\')}"
+            dt_str = datetime.fromtimestamp(latest_record.start_time).strftime('%Y%m%d-%H%M')
+            session_name = f"跑团-{dt_str}"
         summary = self.generator.generate_summary_for_prompt(latest_record, session_name)
         return summary

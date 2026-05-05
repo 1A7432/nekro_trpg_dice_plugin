@@ -340,9 +340,9 @@ class CharacterTemplate:
             "游泳": ["swim", "游泳"],
             "投掷": ["throw", "投掷"],
             "追踪": ["track", "追踪"],
-            "斗殴": ["fighting brawl", "格斗", "斗殴"],
-            "手枪": ["handgun", "手枪"],
-            "步霰": ["rifle/shotgun", "长枪", "步枪"]
+            "斗殴": ["fighting brawl", "格斗（斗殴）", "格斗-斗殴", "格斗：斗殴", "格斗", "斗殴"],
+            "手枪": ["handgun", "射击（手枪）", "射击-手枪", "射击：手枪", "射击", "手枪"],
+            "步霰": ["rifle/shotgun", "射击（步枪/霰弹枪）", "射击（霰弹枪）", "射击（步枪）", "射击-霰弹枪", "射击-步枪", "射击：霰弹枪", "射击：步枪", "步枪/霰弹枪", "长枪", "步枪", "霰弹枪"]
         }
 
         return template
@@ -723,6 +723,13 @@ class CharacterManager:
             prof_bonus = self.get_dnd_proficiency_bonus(level)
 
         return attr_mod + prof_bonus
+
+    def get_dnd_ability_modifier(self, character: CharacterSheet, ability: str) -> int:
+        """计算DND5E单一属性修正值"""
+        ability_map = {"力量": "STR", "敏捷": "DEX", "体质": "CON", "智力": "INT", "感知": "WIS", "魅力": "CHA"}
+        ability_key = ability_map.get(ability, ability)
+        attr_value = character.attributes.get(ability_key, 10)
+        return (attr_value - 10) // 2
 
     def get_dnd_saving_throw_modifier(self, character: CharacterSheet, ability: str, proficient: bool = False) -> int:
         """计算DND5E豁免检定增益"""

@@ -363,13 +363,17 @@ async def roll_dice(_ctx: AgentCtx, expression: str) -> str:
         return f"❌ 掷骰失败: {str(e)}"
 
 
+# COC7 属性名列表（用于 skill_check 智能路由）
+COC_ATTRIBUTE_NAMES = {"STR", "CON", "SIZ", "DEX", "APP", "INT", "POW", "EDU", "LUC"}
+
+
 @plugin.mount_sandbox_method(SandboxMethodType.AGENT, "skill_check", "角色技能检定")
 async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: int = 0, dc: int = None, proficient: bool = False) -> str:
     """
-    对当前角色进行技能检定
+    对当前角色进行技能检定（支持属性名和信用评级自动识别）
 
     Args:
-        skill_name: 技能名称（支持中英文别名）
+        skill_name: 技能名称（支持中英文别名，也支持属性名如 STR、信用评级等）
         bonus: 奖励骰/优势次数（COC:奖励骰数量，DND:优势次数）
         penalty: 惩罚骰/劣势次数（COC:惩罚骰数量，DND:劣势次数）
         dc: 困难等级（仅DND5E，默认15）
@@ -386,12 +390,28 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
         if not character or character.name == "default":
             return "❌ 当前没有角色卡，请先使用 create_character 创建角色"
 
-        # 查找技能
+        # 查找技能别名
         standard_name = character_manager.find_skill_by_alias(character, skill_name)
-        target_skill = standard_name if standard_name else skill_name
+
+        # 智能路由：区分属性、信用评级和普通技能
+        attr_upper = skill_name.upper().strip()
+        credit_names = {"信用", "credit rating", "信用评级", "信誉"}
+        skill_lower = skill_name.lower().strip()
 
         if character.system == "CoC":
-            skill_value = character.skills.get(target_skill, 0)
+            if attr_upper in COC_ATTRIBUTE_NAMES:
+                # 属性检定
+                target_skill = attr_upper
+                skill_value = character.attributes.get(target_skill, 0)
+            elif standard_name == "信用" or skill_lower in credit_names:
+                # 信用评级检定
+                target_skill = "信用评级"
+                skill_value = character.skills.get("信用", 0)
+            else:
+                # 普通技能检定
+                target_skill = standard_name if standard_name else skill_name
+                skill_value = character.skills.get(target_skill, 0)
+
             # 使用修复后的COC7奖励骰逻辑
             result = DiceRoller.roll_coc_check_with_bonus(skill_value, bonus, penalty)
 
@@ -417,6 +437,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
             return response
         else:
             # DND5E 完整检定: d20 + 属性修正 + 熟练加值 vs DC
+            target_skill = standard_name if standard_name else skill_name
             modifier = character_manager.get_dnd_skill_modifier(character, target_skill, proficient)
             target_dc = dc if dc is not None else 15
 
@@ -1244,13 +1265,16 @@ async def generate_session_report(_ctx: AgentCtx) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"battle_report_{timestamp}.md"
         
-        # 写入沙监文件系统
-        sandbox_path = _ctx.fs.get_sandbox_path() / filename
-        with open(sandbox_path, 'w', encoding='utf-8') as f:
+        # 写入沙盒共享目录（供AI下载）
+        report_path = _ctx.fs.shared_path / filename
+        with open(report_path, 'w', encoding='utf-8') as f:
             f.write(markdown_report)
         
+        # 向AI提供可访问的沙盒路径
+        sandbox_file_path = _ctx.fs.forward_file(report_path)
+        
         # 返回文本战报和文档路径
-        response = f"{text_report}\n\n📄 Markdown战报已生成: {filename}"
+        response = f"{text_report}\n\n📄 Markdown战报已生成: {sandbox_file_path}"
         
         return response
         
