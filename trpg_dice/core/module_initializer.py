@@ -86,6 +86,20 @@ class ModuleInitializer:
             value=json.dumps(player_pool, ensure_ascii=False),
         )
 
+        # 将开局已知事实写入 confirmed_facts
+        opening_facts = analysis.get("opening_facts", [])
+        if opening_facts:
+            try:
+                notes_key = f"kp_notes.{chat_key}"
+                notes_data = await self.store.get(user_key="", store_key=notes_key)
+                notes = json.loads(notes_data) if notes_data else {}
+                notes.setdefault("confirmed_facts", [])
+                for fact in opening_facts:
+                    notes["confirmed_facts"].append({"time": "开局", "content": fact})
+                await self.store.set(user_key="", store_key=notes_key, value=json.dumps(notes, ensure_ascii=False))
+            except Exception:
+                pass
+
         self.logger.info(
             f"[ModuleInit] {chat_key} 完成: scenes={len(analysis.get('scenes', []))}, "
             f"npcs={len(analysis.get('npcs', []))}, clues={len(analysis.get('clues', []))}, "
@@ -169,6 +183,10 @@ class ModuleInitializer:
             "revealed_by": "通过什么线索/场景揭示"
         }}
     ],
+    "opening_facts": [
+        "模组开场时玩家（调查员）已经知道的事实1",
+        "模组开场时玩家已经知道的事实2"
+    ],
     "summary": "模组一句话概要（30字以内）"
 }}
 
@@ -205,9 +223,9 @@ class ModuleInitializer:
             result = json.loads(content)
 
             # 确保必要字段存在
-            for field in ["scenes", "npcs", "clues", "timeline", "background", "threats", "truths", "summary"]:
+            for field in ["scenes", "npcs", "clues", "timeline", "background", "threats", "truths", "opening_facts", "summary"]:
                 if field not in result:
-                    result[field] = [] if field in ["scenes", "npcs", "clues", "timeline", "threats", "truths"] else ""
+                    result[field] = [] if field in ["scenes", "npcs", "clues", "timeline", "threats", "truths", "opening_facts"] else ""
 
             return result
 
@@ -222,6 +240,7 @@ class ModuleInitializer:
         for i, para in enumerate(paragraphs[:20]):
             scenes.append({
                 "name": f"场景{i+1}",
+                "focus": "探索",
                 "description": para[:200],
                 "keeper_notes": "",
                 "npcs_present": [],
