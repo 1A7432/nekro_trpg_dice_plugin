@@ -502,32 +502,34 @@ class BattleReportGenerator:
         return "\n".join(lines)
 
 
+
+
+class BattleReportManager:
+    """战报管理器 - 异步包装器"""
+    def __init__(self, store):
+        self.store = store
+        self.generator = BattleReportGenerator(store)
+
     async def ensure_session_started(self, chat_key: str) -> bool:
-        """
-        确保有活跃的会话记录，如果没有则自动启动
-        
-        Returns:
-            bool: True 如果自动启动了新会话，False 如果已有会话
-        """
+        """确保有活跃的会话记录，如果没有则自动启动"""
         current_session = await self.generator.get_current_session(chat_key)
         if not current_session:
-            # 自动启动新会话
             await self.generator.start_session(chat_key, auto_start=True)
             return True
         return False
-    
+
     async def start_session(self, chat_key: str, session_name: str = None) -> str:
         """开始记录跑团"""
         return await self.generator.start_session(chat_key, session_name)
-    
-    async def add_dice_roll(self, chat_key: str, user_id: str, char_name: str, 
+
+    async def add_dice_roll(self, chat_key: str, user_id: str, char_name: str,
                            expression: str, result: int, is_critical: bool = False):
         """记录掷骰"""
         record = await self.generator.get_current_session(chat_key)
         if record:
             record.add_dice_roll(user_id, char_name, expression, result, is_critical)
             await self.generator.save_session(chat_key, record)
-    
+
     async def add_skill_check(self, chat_key: str, user_id: str, char_name: str,
                              skill: str, target: int, roll: int, success_level: str):
         """记录技能检定"""
@@ -535,64 +537,42 @@ class BattleReportGenerator:
         if record:
             record.add_skill_check(user_id, char_name, skill, target, roll, success_level)
             await self.generator.save_session(chat_key, record)
-    
+
     async def add_key_event(self, chat_key: str, description: str, event_type: str = "general"):
         """记录关键事件"""
         record = await self.generator.get_current_session(chat_key)
         if record:
             record.add_key_event(description, event_type)
             await self.generator.save_session(chat_key, record)
-    
+
     async def add_player_action(self, chat_key: str, user_id: str, char_name: str, action: str):
         """记录玩家行动"""
         record = await self.generator.get_current_session(chat_key)
         if record:
             record.add_player_action(user_id, char_name, action)
             await self.generator.save_session(chat_key, record)
-    
-    async def generate_battle_report(self, chat_key: str) -> Tuple[str, str, str]:
-        """
-        生成并结束战报
-        
-        返回: (纯文本战报, Markdown战报, 会话名称)
-        """
+
+    async def generate_battle_report(self, chat_key: str) -> tuple:
+        """生成并结束战报，返回: (纯文本战报, Markdown战报, 会话名称)"""
         record = await self.generator.end_session(chat_key)
         if not record:
             return None, None, None
-        
-        # 获取会话名称
         name_key = f"session_name.{chat_key}.current"
         session_name = await self.store.get(store_key=name_key)
         if not session_name:
-            session_name = f"跑团-{datetime.fromtimestamp(record.start_time).strftime('%Y%m%d-%H%M')}"
-        
-        # 生成战报
+            session_name = f"跑团-{datetime.fromtimestamp(record.start_time).strftime(\'%Y%m%d-%H%M\')}"
         text_report = self.generator.generate_report_text(record, session_name)
         markdown_report = self.generator.generate_markdown_report(record, session_name)
-        
         return text_report, markdown_report, session_name
-    
-    async def get_last_session_summary(self, chat_key: str) -> Optional[str]:
-        """
-        获取上次跑团的简要总结，用于提示词注入
-        
-        Returns:
-            简要的战报摘要文本，或None
-        """
-        # 获取最近的历史记录
+
+    async def get_last_session_summary(self, chat_key: str) -> str:
+        """获取上次跑团的简要总结，用于提示词注入"""
         latest_record = await self.generator.get_latest_history(chat_key)
         if not latest_record:
             return None
-        
-        # 获取会话名称
         name_key = f"session_name.{chat_key}.latest"
         session_name = await self.store.get(store_key=name_key)
         if not session_name:
-            session_name = f"跑团-{datetime.fromtimestamp(latest_record.start_time).strftime('%Y%m%d-%H%M')}"
-        
-        # 生成摘要
+            session_name = f"跑团-{datetime.fromtimestamp(latest_record.start_time).strftime(\'%Y%m%d-%H%M\')}"
         summary = self.generator.generate_summary_for_prompt(latest_record, session_name)
         return summary
-
-# 兼容性别名: 远程代码中使用了 BattleReportManager
-BattleReportManager = BattleReportGenerator
