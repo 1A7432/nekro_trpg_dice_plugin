@@ -586,6 +586,53 @@ async def update_knowledge_pool(_ctx: AgentCtx, player_visible: str, keeper_only
         return f"❌ 更新知识池失败: {str(e)}"
 
 
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "start_module_initialization", "手动触发模组知识池初始化")
+async def start_module_initialization(_ctx: AgentCtx) -> str:
+    """
+    手动触发模组知识池的后台初始化。
+    上传 module/story 类型文档后会自动初始化，但也可以手动调用此方法重新初始化或强制开始。
+    """
+    chat_key = _ctx.chat_key
+    try:
+        status = await store.get(user_key="", store_key=f"module_init_status.{chat_key}")
+        if status == "processing":
+            return "⏳ 模组初始化正在进行中，请稍候..."
+
+        chunks = await document_manager.list_all_chunks(chat_key)
+        if not chunks:
+            return "❌ 当前没有上传的模组文档，请先上传 module/story 类型文档"
+
+        asyncio.create_task(module_initializer.initialize(chat_key))
+        return f"✅ 已启动模组知识池初始化（{len(chunks)} 个分片），后台处理中..."
+    except Exception as e:
+        return f"❌ 启动初始化失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "get_module_init_status", "获取模组初始化状态")
+async def get_module_init_status(_ctx: AgentCtx) -> str:
+    """
+    查询当前聊天频道的模组知识池初始化状态。
+    """
+    chat_key = _ctx.chat_key
+    try:
+        status = await store.get(user_key="", store_key=f"module_init_status.{chat_key}")
+        if not status:
+            return "📭 尚未上传模组文档或未开始初始化"
+        elif status == "processing":
+            return "⏳ 模组知识池正在后台初始化中..."
+        elif status == "ready":
+            catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
+            catalog = json.loads(catalog_data) if catalog_data else []
+            return f"✅ 模组知识池初始化完成（{len(catalog)} 个分片已分析）"
+        elif isinstance(status, str) and status.startswith("failed"):
+            err = status.split(":", 1)[1] if ":" in status else "未知错误"
+            return f"❌ 初始化失败: {err}"
+        else:
+            return f"❓ 未知状态: {status}"
+    except Exception as e:
+        return f"❌ 查询状态失败: {str(e)}"
+
+
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
 async def delete_character(_ctx: AgentCtx, name: str) -> str:
     """删除指定角色卡"""
