@@ -1036,18 +1036,20 @@ async def list_my_documents(_ctx: AgentCtx, doc_type: Optional[str] = None) -> s
         return error_msg
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "search_documents", "搜索文档内容")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "search_documents", "KP检索模组文档（仅限AI观察，勿直接输出给玩家）")
 async def search_documents(_ctx: AgentCtx, query: str, doc_type: Optional[str] = None, limit: int = 15) -> str:
     """
-    搜索文档内容
+    KP检索模组文档——返回的是守秘人(KP)备课资料，包含模组原文、幕后设定、NPC秘密、未触发线索等。
+    ⚠️ 这是AGENT方法，检索结果只会返回给AI观察，不会直接进入对话输出。
+    AI必须消化整理后，只转化为调查员视角可感知的信息再输出，绝不可直接转述原文给玩家。
     
     Args:
-        query: 搜索查询
-        doc_type: 可选的文档类型过滤
+        query: 搜索查询（如NPC名、地点、线索关键词）
+        doc_type: 可选的文档类型过滤 (module/rule/story/background)
         limit: 返回结果数量限制
     
     Returns:
-        搜索结果信息
+        搜索结果（KP-only内部资料）
     """
     if not config.ENABLE_VECTOR_DB:
         return "❌ 文档功能未启用"
@@ -1084,16 +1086,19 @@ async def search_documents(_ctx: AgentCtx, query: str, doc_type: Optional[str] =
         return error_msg
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "answer_document_question", "基于文档回答问题")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "answer_document_question", "KP基于文档内部查询（仅限AI观察，勿直接输出给玩家）")
 async def answer_document_question(_ctx: AgentCtx, question: str) -> str:
     """
-    基于上传的文档回答问题
+    KP基于文档进行内部查询——返回的是守秘人(KP)备课资料。
+    ⚠️ 这是AGENT方法，查询结果只会返回给AI观察，不会直接进入对话输出。
+    AI必须消化整理后，只转化为调查员视角可感知的信息再输出，绝不可直接转述原文给玩家。
+    适用于查询规则条文、模组设定、NPC背景等，但输出前必须过滤掉幕后信息。
     
     Args:
-        question: 用户的问题
+        question: 查询问题
     
     Returns:
-        基于文档的回答
+        文档相关内容（KP-only内部资料）
     """
     if not config.ENABLE_VECTOR_DB:
         return "❌ 文档功能未启用"

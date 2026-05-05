@@ -51,10 +51,10 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• hp_manager(action, value=0) - HP管理 (action: show/add/sub/set)",
         "• initiative_tracker(action, name=None, initiative=None) - 先攻追踪 (add/list/clear/next)",
         "",
-        "### 文档系统",
+        "### 文档系统（KP内部工具，检索结果不可直接告知玩家）",
         "• upload_document(file_path, doc_type='module') - 上传文档",
-        "• search_documents(query, doc_type=None, limit=5) - 搜索文档",
-        "• answer_document_question(question) - 基于文档问答",
+        "• search_documents(query, doc_type=None, limit=5) - KP检索模组文档（AGENT:结果只给AI观察，必须消化后转化为调查员视角再输出）",
+        "• answer_document_question(question) - KP基于文档内部查询（AGENT:结果只给AI观察，必须过滤幕后信息后再输出）",
         "• list_my_documents(doc_type=None) - 列出文档",
         "",
         "## 行为准则:",
@@ -68,7 +68,8 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• DND5E检定自动判定大成功(20)/大失败(1)",
         "• **掷骰优先原则**: 所有检定必须先真实掷骰、读取结果，再依据成功/失败/大成功/大失败来决定剧情后果，绝不预写结果",
         "• **玩家参与原则**: 需要检定时优先提示玩家使用具体的掷骰指令自行掷骰（如提示：请投掷侦察检定，输入 .ra 侦察），让玩家亲手参与；若玩家未响应或不方便操作，再代为调用工具掷骰",
-        "• **暗骰透明原则**: 暗骰（如敌人潜行、幕后判定）由 AI KP 自行调用工具掷骰，但必须明确向玩家声明正在进行的掷骰行动（如：'KP 暗骰中... 掷出 63'），不隐瞒检定行为，无需额外解释原因"
+        "• **暗骰透明原则**: 暗骰（如敌人潜行、幕后判定）由 AI KP 自行调用工具掷骰，但必须明确向玩家声明正在进行的掷骰行动（如：'KP 暗骰中... 掷出 63'），不隐瞒检定行为，无需额外解释原因",
+        "• **模组保密原则**: search_documents / answer_document_question 返回的是KP-only内部资料（模组原文、幕后设定、NPC秘密、未触发线索、怪物数据、完整房间清单等），绝不可直接转述给玩家。必须先消化整理，只转化为当前调查员视角可感知的信息再输出。规则条文可以摘要解释，模组剧情必须转化为场景描述"
     ]
 
     return "\n".join(prompt_parts)
