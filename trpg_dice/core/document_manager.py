@@ -443,19 +443,19 @@ class VectorDatabaseManager:
 
         try:
             # 删除该文档的所有块 - 只根据文档ID和聊天环境，不再检查用户ID
+            # Qdrant points_selector 直接接受 Filter dict，不需要外层 "filter" 键
             await client.delete(
                 collection_name=self.collection_name,
                 points_selector={
-                    "filter": {
-                        "must": [
-                            {"key": "document_id", "match": {"value": document_id}},
-                            {"key": "chat_key", "match": {"value": chat_key}},
-                        ]
-                    }
+                    "must": [
+                        {"key": "document_id", "match": {"value": document_id}},
+                        {"key": "chat_key", "match": {"value": chat_key}},
+                    ]
                 },
             )
             return True
-        except Exception:
+        except Exception as e:
+            core.logger.error(f"[VectorDB] 删除文档失败: document_id={document_id}, chat_key={chat_key}, error={e}")
             return False
 
     async def list_documents(

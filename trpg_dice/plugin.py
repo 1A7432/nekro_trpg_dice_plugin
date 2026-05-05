@@ -633,6 +633,70 @@ async def get_module_init_status(_ctx: AgentCtx) -> str:
         return f"❌ 查询状态失败: {str(e)}"
 
 
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "query_knowledge_pool", "查询模组知识池（KP-only，结果只给AI观察）")
+async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "keeper") -> str:
+    """
+    在模组知识池中搜索特定主题。
+    用于跑团时主动查询某个NPC的真相、某个场景的幕后设定、已解锁线索等。
+
+    Args:
+        query: 搜索关键词，如"NPC名字"、"场景名称"、"线索"等
+        pool_type: "keeper" 查询守秘人知识池（幕后真相），"player" 查询玩家已解锁知识池
+
+    Returns:
+        匹配的知识池条目，KP-only结果不可直接输出给玩家
+    """
+    chat_key = _ctx.chat_key
+    try:
+        if pool_type not in ("keeper", "player"):
+            return "❌ pool_type 必须是 'keeper' 或 'player'"
+
+        store_key = f"module_{pool_type}_pool.{chat_key}"
+        pool_data = await store.get(user_key="", store_key=store_key)
+        if not pool_data:
+            return f"❌ 当前没有{'守秘人' if pool_type == 'keeper' else '玩家'}知识池，请先上传模组并初始化"
+
+        pool = json.loads(pool_data)
+        query_lower = query.lower()
+        matches = []
+
+        for category, items in pool.items():
+            for item in items:
+                searchable = " ".join([
+                    str(item.get("title", "")),
+                    str(item.get("summary", "")),
+                    " ".join(str(k) for k in item.get("keywords", [])),
+                    " ".join(str(t) for t in item.get("spoiler_tags", [])),
+                ]).lower()
+                if query_lower in searchable:
+                    matches.append({"category": category, **item})
+
+        if not matches:
+            return f"🔍 在{'守秘人' if pool_type == 'keeper' else '玩家'}知识池中未找到与 \"{query}\" 相关的内容"
+
+        lines = [
+            f"{'🔴 守秘人知识池' if pool_type == 'keeper' else '🟢 玩家知识池'} 搜索结果: \"{query}\"",
+            f"共找到 {len(matches)} 条匹配：",
+            "",
+        ]
+
+        for i, m in enumerate(matches[:20], 1):
+            lines.append(f"{i}. [{m['category']}] {m.get('title', '?')}")
+            lines.append(f"   摘要: {m.get('summary', '')}")
+            if m.get("keywords"):
+                lines.append(f"   关键词: {', '.join(str(k) for k in m['keywords'])}")
+            if m.get("spoiler_tags"):
+                lines.append(f"   ⚠️ 剧透标签: {', '.join(str(t) for t in m['spoiler_tags'])}")
+            lines.append("")
+
+        if len(matches) > 20:
+            lines.append(f"... 还有 {len(matches) - 20} 条结果未显示")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"❌ 查询知识池失败: {str(e)}"
+
+
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
 async def delete_character(_ctx: AgentCtx, name: str) -> str:
     """删除指定角色卡"""
