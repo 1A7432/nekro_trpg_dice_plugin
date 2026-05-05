@@ -135,6 +135,40 @@ async def inject_game_state_prompt(_ctx, character_manager, store) -> str:
         except Exception:
             pass  # 忽略角色卡获取错误
 
+        # 注入 KP 笔记中的 world_changes 和 npc_status
+        try:
+            notes_data = await store.get(user_key="", store_key=f"kp_notes.{_ctx.chat_key}")
+            if notes_data:
+                notes = json.loads(notes_data)
+                injected_any = False
+                
+                # 世界变更（最高优先级，每次必注入）
+                world_changes = notes.get("world_changes", [])
+                if world_changes:
+                    prompt_parts.extend([
+                        "",
+                        "## 世界状态变更（来自 KP 笔记）",
+                    ])
+                    for item in world_changes[-5:]:  # 最近5条
+                        prompt_parts.append(f"• {item.get('time', '?')}: {item.get('content', '')}")
+                    injected_any = True
+                
+                # NPC 状态变更
+                npc_status = notes.get("npc_status", [])
+                if npc_status:
+                    prompt_parts.extend([
+                        "",
+                        "## NPC 状态更新（来自 KP 笔记）",
+                    ])
+                    for item in npc_status[-5:]:
+                        prompt_parts.append(f"• {item.get('time', '?')}: {item.get('content', '')}")
+                    injected_any = True
+                
+                if injected_any:
+                    prompt_parts.append("• 更多笔记可用 kp_note('list', '分类名') 查询")
+        except Exception:
+            pass
+
         # 检查先攻状态
         try:
             init_data = await store.get(user_key=user_id, store_key=f"initiative.{_ctx.chat_key}")
