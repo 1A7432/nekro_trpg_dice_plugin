@@ -194,7 +194,7 @@ async def create_character(
         return f"❌ 创建角色失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "get_character_sheet", "获取当前角色卡信息")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "get_character_sheet", "获取当前角色卡信息")
 async def get_character_sheet(_ctx: AgentCtx) -> str:
     """
     获取当前用户的角色卡详细信息
@@ -458,7 +458,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
         return f"❌ 检定失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "list_characters", "列出所有角色卡")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "list_characters", "列出所有角色卡")
 async def list_characters(_ctx: AgentCtx) -> str:
     """列出用户的所有角色卡"""
     user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')

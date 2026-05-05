@@ -289,11 +289,7 @@ class VectorDatabaseManager:
                 self.logger.debug(
                     f"调用嵌入模型: model={model_group_info.CHAT_MODEL}, base_url={model_group_info.BASE_URL}"
                 )
-                self.logger.debug(
-                    f"API密钥: {model_group_info.API_KEY[:10]}..."
-                    if model_group_info.API_KEY
-                    else "API密钥为空"
-                )
+                # API密钥信息已省略（安全）
 
                 try:
                     embedding = await gen_openai_embeddings(
@@ -338,10 +334,11 @@ class VectorDatabaseManager:
             }
             points.append(point)
 
-        # 批量插入
-        await client.upsert(collection_name=self.collection_name, points=points)
+        # 批量插入（空列表跳过）
+        if points:
+            await client.upsert(collection_name=self.collection_name, points=points)
 
-        return len(chunks)
+        return len(points)
 
     async def search_documents(
         self,
