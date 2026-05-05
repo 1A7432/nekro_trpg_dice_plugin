@@ -442,17 +442,43 @@ class VectorDatabaseManager:
         client = await self._get_client()
 
         try:
-            # 删除该文档的所有块 - 只根据文档ID和聊天环境，不再检查用户ID
-            # Qdrant points_selector 直接接受 Filter dict，不需要外层 "filter" 键
-            await client.delete(
-                collection_name=self.collection_name,
-                points_selector={
-                    "must": [
-                        {"key": "document_id", "match": {"value": document_id}},
-                        {"key": "chat_key", "match": {"value": chat_key}},
-                    ]
-                },
-            )
+            # 先查出所有匹配的 point IDs（scroll 已验证可用）
+            point_ids = []
+            offset = None
+            filter_must = [
+                {"key": "document_id", "match": {"value": document_id}},
+                {"key": "chat_key", "match": {"value": chat_key}},
+            ]
+            while True:
+                batch, offset = await client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter={"must": filter_must},
+                    limit=100,
+                    offset=offset,
+                )
+                for hit in batch:
+                    point_ids.append(hit.id)
+                if offset is None:
+                    break
+
+            if not point_ids:
+                self.logger.info(f"[VectorDB] 没有匹配的 points 需要删除: document_id={document_id}")
+                return True
+
+            self.logger.info(f"[VectorDB] 准备删除 {len(point_ids)} 个 points: document_id={document_id}")
+
+            # 按 ID 删除 - PointIdsList 格式最可靠
+            if QDRANT_MODELS_AVAILABLE:
+                await client.delete(
+                    collection_name=self.collection_name,
+                    points_selector=qdrant_models.PointIdsList(points=point_ids),
+                )
+            else:
+                await client.delete(
+                    collection_name=self.collection_name,
+                    points_selector={"points": point_ids},
+                )
+            self.logger.info(f"[VectorDB] 删除成功: document_id={document_id}, 删除了 {len(point_ids)} 个 points")
             return True
         except Exception as e:
             core.logger.error(f"[VectorDB] 删除文档失败: document_id={document_id}, chat_key={chat_key}, error={e}")

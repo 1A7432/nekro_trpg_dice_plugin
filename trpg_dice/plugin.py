@@ -1188,6 +1188,13 @@ async def delete_document(_ctx: AgentCtx, filename: str) -> str:
         )
         
         if success:
+            # 删除 module/story 文档后清理知识池，避免 AI 看到过期内容
+            if target_doc.get("document_type") in ("module", "story"):
+                await store.set(user_key="", store_key=f"module_catalog.{chat_key}", value="")
+                await store.set(user_key="", store_key=f"module_keeper_pool.{chat_key}", value="")
+                await store.set(user_key="", store_key=f"module_player_pool.{chat_key}", value="")
+                await store.set(user_key="", store_key=f"module_init_status.{chat_key}", value="")
+
             doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}.get(target_doc["document_type"], "📄")
             return f"✅ {doc_emoji} 文档 \"{filename}\" 已删除"
         else:
