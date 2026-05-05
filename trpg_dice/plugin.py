@@ -98,7 +98,7 @@ class TRPGDiceConfig(ConfigBase):
         description="向量检索时返回的最大结果数量",
     )
     MODULE_INIT_MODEL_GROUP: str = Field(
-        default="chat",
+        default="default",
         title="模组初始化模型组",
         description="后台分析模组 chunk 并生成 Catalog 的 LLM 模型组",
         json_schema_extra={"ref_model_groups": True, "model_type": "chat"},
