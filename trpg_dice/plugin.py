@@ -2034,9 +2034,9 @@ async def get_battle_report_markdown(_ctx: AgentCtx, timestamp: str) -> str:
 # ============ 骰子相关命令 ============
 
 @on_command("r", priority=5, block=True).handle()
-async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_dice_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """基础投骰指令"""
-    expression = args.extract_plain_text().strip()
+    expression = arg.extract_plain_text().strip()
     if not expression:
         await finish_with(matcher, "请输入骰子表达式，如: r 3d6+2")
         return
@@ -2082,9 +2082,9 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, args: Message 
 
 
 @on_command("rh", aliases={"rhide"}, priority=5, block=True).handle()
-async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """隐藏掷骰指令"""
-    expression = args.extract_plain_text().strip()
+    expression = arg.extract_plain_text().strip()
     if not expression:
         await finish_with(matcher, "请输入骰子表达式，如: rh 3d6+2")
         return
@@ -2103,9 +2103,9 @@ async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, args: Messag
 
 
 @on_command("adv", aliases={"advantage"}, priority=5, block=True).handle()
-async def handle_advantage_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_advantage_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """优势掷骰"""
-    expression = args.extract_plain_text().strip()
+    expression = arg.extract_plain_text().strip()
     if not expression:
         expression = "d20"
     
@@ -2118,9 +2118,9 @@ async def handle_advantage_roll(matcher: Matcher, event: MessageEvent, args: Mes
 
 
 @on_command("dis", aliases={"disadvantage"}, priority=5, block=True).handle()
-async def handle_disadvantage_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_disadvantage_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """劣势掷骰"""
-    expression = args.extract_plain_text().strip()
+    expression = arg.extract_plain_text().strip()
     if not expression:
         expression = "d20"
     
@@ -2133,9 +2133,9 @@ async def handle_disadvantage_roll(matcher: Matcher, event: MessageEvent, args: 
 
 
 @on_command("me", priority=5, block=True).handle()
-async def handle_character_action(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_character_action(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """角色动作描述"""
-    action = args.extract_plain_text().strip()
+    action = arg.extract_plain_text().strip()
     if not action:
         await finish_with(matcher, "请描述你的角色动作，如: me 仔细观察房间")
         return
@@ -2171,9 +2171,9 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, args: M
 
 
 @on_command("ra", priority=5, block=True).handle()
-async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_skill_check(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """技能检定 - 支持奖惩骰"""
-    skill_input = args.extract_plain_text().strip()
+    skill_input = arg.extract_plain_text().strip()
     if not skill_input:
         await finish_with(matcher, "请输入技能名称，如: ra 侦察")
         return
@@ -2280,9 +2280,9 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, args: Messag
 
 
 @on_command("rah", aliases={"rahide"}, priority=5, block=True).handle()
-async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """隐藏技能检定"""
-    skill_input = args.extract_plain_text().strip()
+    skill_input = arg.extract_plain_text().strip()
     if not skill_input:
         await finish_with(matcher, "请输入技能名称，如: rah 侦察")
         return
@@ -2368,9 +2368,9 @@ async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, args:
 
 
 @on_command("rav", aliases={"ravs"}, priority=5, block=True).handle()
-async def handle_opposed_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_opposed_check(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """对抗检定"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: rav <技能1> vs <技能2>\n或: rav <技能1> <数值1> vs <技能2> <数值2>")
         return
@@ -2455,9 +2455,9 @@ async def handle_opposed_check(matcher: Matcher, event: MessageEvent, args: Mess
 # ============ 角色卡管理命令 ============
 
 @on_command("st", priority=5, block=True).handle()
-async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """角色卡管理"""
-    command = args.extract_plain_text().strip()
+    command = arg.extract_plain_text().strip()
     user_id = str(event.user_id)
     chat_key = str(getattr(event, "group_id", None) or event.user_id)
     
@@ -2656,9 +2656,9 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, args: Me
 # ============ CoC7 特殊指令 ============
 
 @on_command("coc", priority=5, block=True).handle()
-async def handle_coc_direct_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_coc_direct_check(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """直接CoC技能检定（无需角色卡）"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: coc <技能值> [困难/极难]\n例如: coc 65 / coc 75 困难")
         return
@@ -2700,9 +2700,9 @@ async def handle_coc_direct_check(matcher: Matcher, event: MessageEvent, args: M
 
 
 @on_command("madness", aliases={"mad"}, priority=5, block=True).handle()
-async def handle_madness(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_madness(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """疯狂症状统一入口"""
-    content = args.extract_plain_text().strip().lower()
+    content = arg.extract_plain_text().strip().lower()
     
     # 临时疯狂
     temp_symptoms = [
@@ -2760,9 +2760,9 @@ async def handle_madness(matcher: Matcher, event: MessageEvent, args: Message = 
 
 
 @on_command("sc", priority=5, block=True).handle()
-async def handle_sanity_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_sanity_check(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """理智检定"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: sc <成功损失>/<失败损失> [当前SAN]")
         return
@@ -2817,9 +2817,9 @@ async def handle_sanity_check(matcher: Matcher, event: MessageEvent, args: Messa
 
 
 @on_command("en", priority=5, block=True).handle()
-async def handle_skill_growth(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_skill_growth(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """技能成长检定"""
-    skill_input = args.extract_plain_text().strip()
+    skill_input = arg.extract_plain_text().strip()
     if not skill_input:
         await finish_with(matcher, "用法: en <技能名>")
         return
@@ -2892,9 +2892,9 @@ async def handle_long_madness(matcher: Matcher, event: MessageEvent):
 
 
 @on_command("cocchar", aliases={"coc"}, priority=5, block=True).handle()
-async def handle_coc_char_gen(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_coc_char_gen(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """生成CoC角色"""
-    name = args.extract_plain_text().strip() or "调查员"
+    name = arg.extract_plain_text().strip() or "调查员"
     try:
         user_id = str(event.user_id)
         chat_key = str(getattr(event, "group_id", None) or event.user_id)
@@ -2917,9 +2917,9 @@ async def handle_coc_char_gen(matcher: Matcher, event: MessageEvent, args: Messa
 
 
 @on_command("dndchar", aliases={"dnd"}, priority=5, block=True).handle()
-async def handle_dnd_char_gen(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_dnd_char_gen(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """生成DND角色"""
-    name = args.extract_plain_text().strip() or "冒险者"
+    name = arg.extract_plain_text().strip() or "冒险者"
     try:
         user_id = str(event.user_id)
         chat_key = str(getattr(event, "group_id", None) or event.user_id)
@@ -2938,9 +2938,9 @@ async def handle_dnd_char_gen(matcher: Matcher, event: MessageEvent, args: Messa
 
 
 @on_command("check", priority=5, block=True).handle()
-async def handle_dnd_check(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_dnd_check(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """DND5E能力检定"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: check <属性/技能> [DC] [熟练]\n例如: check 察觉 / check 力量 15 熟练")
         return
@@ -3003,9 +3003,9 @@ async def handle_dnd_check(matcher: Matcher, event: MessageEvent, args: Message 
 
 
 @on_command("save", aliases={"savingthrow"}, priority=5, block=True).handle()
-async def handle_dnd_save(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_dnd_save(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """DND5E豁免检定"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: save <属性> [DC] [熟练]\n例如: save 体质 / save 智力 15 熟练")
         return
@@ -3070,9 +3070,9 @@ async def handle_dnd_save(matcher: Matcher, event: MessageEvent, args: Message =
 # ============ 战斗与先攻指令 ============
 
 @on_command("init", aliases={"先攻"}, priority=5, block=True).handle()
-async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """先攻检定 - 简化版，直接掷d20+修正并加入先攻列表"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     user_id = str(event.user_id)
     chat_key = str(getattr(event, "group_id", None) or event.user_id)
     store_key = f"initiative.{chat_key}"
@@ -3144,9 +3144,9 @@ async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, args: Me
 
 
 @on_command("ri", priority=5, block=True).handle()
-async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_initiative(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """先攻追踪 - 支持优势劣势"""
-    command = args.extract_plain_text().strip()
+    command = arg.extract_plain_text().strip()
     user_id = str(event.user_id)
     chat_key = str(getattr(event, "group_id", None) or event.user_id)
     store_key = f"initiative.{chat_key}"
@@ -3264,9 +3264,9 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message
 
 
 @on_command("hp", priority=5, block=True).handle()
-async def handle_hp(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_hp(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """生命值管理"""
-    command = args.extract_plain_text().strip()
+    command = arg.extract_plain_text().strip()
     user_id = str(event.user_id)
     chat_key = str(getattr(event, "group_id", None) or event.user_id)
     
@@ -3310,9 +3310,9 @@ async def handle_hp(matcher: Matcher, event: MessageEvent, args: Message = Comma
 # ============ 特殊骰子指令 ============
 
 @on_command("wod", aliases={"w"}, priority=5, block=True).handle()
-async def handle_wod_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_wod_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """WoD骰池"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: wod <骰池大小> [困难度]")
         return
@@ -3344,9 +3344,9 @@ async def handle_wod_roll(matcher: Matcher, event: MessageEvent, args: Message =
 
 
 @on_command("fate", aliases={"f"}, priority=5, block=True).handle()
-async def handle_fate_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_fate_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """Fate骰子"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     try:
         modifier = 0
         dice_count = 4
@@ -3369,9 +3369,9 @@ async def handle_fate_roll(matcher: Matcher, event: MessageEvent, args: Message 
 
 
 @on_command("explode", aliases={"ex"}, priority=5, block=True).handle()
-async def handle_explode_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_explode_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """爆炸骰"""
-    expression = args.extract_plain_text().strip()
+    expression = arg.extract_plain_text().strip()
     if not expression:
         await finish_with(matcher, "用法: explode <表达式> (如 explode d10)")
         return
@@ -3384,9 +3384,9 @@ async def handle_explode_roll(matcher: Matcher, event: MessageEvent, args: Messa
 
 
 @on_command("repeat", aliases={"rn"}, priority=5, block=True).handle()
-async def handle_repeat_roll(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_repeat_roll(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """多次掷骰"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     if not content:
         await finish_with(matcher, "用法: repeat <次数> <表达式> (如 repeat 3 d6)")
         return
@@ -3415,9 +3415,9 @@ async def handle_repeat_roll(matcher: Matcher, event: MessageEvent, args: Messag
 
 
 @on_command("name", priority=5, block=True).handle()
-async def handle_random_name(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_random_name(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """随机姓名生成"""
-    content = args.extract_plain_text().strip().lower()
+    content = arg.extract_plain_text().strip().lower()
     
     # 中文姓氏和名字
     surnames = ["赵", "钱", "孙", "李", "周", "吴", "郑", "王", "冯", "陈", "褚", "卫", "蒋", "沈", "韩", "杨", "朱", "秦", "尤", "许"]
@@ -3467,9 +3467,9 @@ async def handle_random_name(matcher: Matcher, event: MessageEvent, args: Messag
 
 
 @on_command("draw", priority=5, block=True).handle()
-async def handle_draw_card(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_draw_card(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """抽卡"""
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     try:
         count = int(content) if content.isdigit() else 1
         count = min(max(count, 1), 10)
@@ -3488,13 +3488,13 @@ async def handle_draw_card(matcher: Matcher, event: MessageEvent, args: Message 
 # ============ 文档管理命令 ============
 
 @on_command("doc", aliases={"文档", "模组"}, priority=5, block=True).handle()
-async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """文档系统帮助"""
     if not config.ENABLE_VECTOR_DB:
         await finish_with(matcher, "❌ 文档功能未启用")
         return
     
-    command = args.extract_plain_text().strip()
+    command = arg.extract_plain_text().strip()
     
     if command == "list":
         # 列出文档
@@ -3586,13 +3586,13 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, args: Mess
 
 
 @on_command("doc_text", aliases={"文档文本", "text"}, priority=5, block=True).handle()
-async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """上传文本文档"""
     if not config.ENABLE_VECTOR_DB:
         await finish_with(matcher, "❌ 文档功能未启用")
         return
     
-    content = args.extract_plain_text().strip()
+    content = arg.extract_plain_text().strip()
     parts = content.split(' ', 2)
     
     if len(parts) < 3:
@@ -3636,13 +3636,13 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
 
 
 @on_command("ask", aliases={"问答", "询问", "qa"}, priority=5, block=True).handle()
-async def handle_document_qa(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_document_qa(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """智能文档问答"""
     if not config.ENABLE_VECTOR_DB:
         await finish_with(matcher, "❌ 文档功能未启用")
         return
     
-    question = args.extract_plain_text().strip()
+    question = arg.extract_plain_text().strip()
     if not question:
         await finish_with(matcher, "请输入你的问题")
         return
@@ -3793,9 +3793,9 @@ async def handle_help(matcher: Matcher, event: MessageEvent):
 # ============ 战报管理命令 ============
 
 @on_command("session", aliases={"跑团", "会话"}, priority=5, block=True).handle()
-async def handle_session(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
+async def handle_session(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """跑团会话管理"""
-    command = args.extract_plain_text().strip()
+    command = arg.extract_plain_text().strip()
     chat_key = str(getattr(event, "group_id", None) or event.user_id)
     
     if command.startswith("start"):
