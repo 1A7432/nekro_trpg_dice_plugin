@@ -567,21 +567,43 @@ async def get_module_catalog(_ctx: AgentCtx) -> str:
         return f"❌ 获取模组目录失败: {str(e)}"
 
 
-@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "update_knowledge_pool", "更新模组知识池")
-async def update_knowledge_pool(_ctx: AgentCtx, player_visible: str, keeper_only: str) -> str:
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "update_knowledge_pool", "增量更新模组知识池")
+async def update_knowledge_pool(_ctx: AgentCtx, player_visible_patch: str = "", keeper_only_patch: str = "") -> str:
     """
-    更新当前聊天频道的模组知识池。
-    AI 在跑团过程中可以持续追加新解锁的玩家信息和守秘人笔记。
+    增量更新模组知识池。传入的 JSON 会自动合并到现有池中，不会覆盖已有的模组设定。
+    用于跑团中追加 AI KP 的即兴创作、世界状态变更、NPC 状态更新等。
 
     Args:
-        player_visible: 玩家视角已解锁的信息（JSON 字符串）
-        keeper_only: 守秘人专属幕后信息（JSON 字符串）
+        player_visible_patch: 玩家可见信息的增量 JSON（会和现有 player_pool 深度合并）
+        keeper_only_patch: 守秘人信息的增量 JSON（会和现有 keeper_pool 深度合并）
     """
     chat_key = _ctx.chat_key
     try:
-        await store.set(user_key="", store_key=f"module_player_pool.{chat_key}", value=player_visible)
-        await store.set(user_key="", store_key=f"module_keeper_pool.{chat_key}", value=keeper_only)
-        return "✅ 知识池已更新"
+        def deep_merge(base: dict, patch: dict) -> dict:
+            for k, v in patch.items():
+                if isinstance(v, dict) and k in base and isinstance(base[k], dict):
+                    deep_merge(base[k], v)
+                elif isinstance(v, list) and k in base and isinstance(base[k], list):
+                    base[k].extend(v)
+                else:
+                    base[k] = v
+            return base
+
+        if player_visible_patch:
+            current_player = await store.get(user_key="", store_key=f"module_player_pool.{chat_key}")
+            player_pool = json.loads(current_player) if current_player else {}
+            patch = json.loads(player_visible_patch)
+            player_pool = deep_merge(player_pool, patch)
+            await store.set(user_key="", store_key=f"module_player_pool.{chat_key}", value=json.dumps(player_pool, ensure_ascii=False))
+
+        if keeper_only_patch:
+            current_keeper = await store.get(user_key="", store_key=f"module_keeper_pool.{chat_key}")
+            keeper_pool = json.loads(current_keeper) if current_keeper else {}
+            patch = json.loads(keeper_only_patch)
+            keeper_pool = deep_merge(keeper_pool, patch)
+            await store.set(user_key="", store_key=f"module_keeper_pool.{chat_key}", value=json.dumps(keeper_pool, ensure_ascii=False))
+
+        return "✅ 知识池已增量更新"
     except Exception as e:
         return f"❌ 更新知识池失败: {str(e)}"
 
@@ -1002,6 +1024,65 @@ async def unlock_for_player(_ctx: AgentCtx, element_type: str, name: str) -> str
         return f"✅ 已解锁 {element_type}: {target_name} → 玩家知识池"
     except Exception as e:
         return f"❌ 解锁失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "kp_note", "KP 自由笔记/世界状态记录")
+async def kp_note(_ctx: AgentCtx, action: str, category: str, content: str = "") -> str:
+    """
+    AI KP 的自由笔记系统。记录即兴创作的新场景、世界状态变更、NPC 状态更新、玩家行为历史等。
+    与模组知识池（只读官方设定）分开，专门存放跑团过程中的动态内容。
+
+    Args:
+        action: add(追加笔记) / update(更新) / delete(删除) / list(列出该分类所有笔记)
+        category: 笔记分类。建议：improvised_scenes(即兴场景), npc_status(NPC状态), world_changes(世界变更), player_actions(玩家行为), kp_reasoning(KP推理)
+        content: 笔记内容（action=list 时可留空）
+    """
+    chat_key = _ctx.chat_key
+    store_key = f"kp_notes.{chat_key}"
+    try:
+        notes_data = await store.get(user_key="", store_key=store_key)
+        notes = json.loads(notes_data) if notes_data else {}
+
+        if action == "add":
+            notes.setdefault(category, [])
+            note_item = {
+                "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "content": content,
+            }
+            notes[category].append(note_item)
+            await store.set(user_key="", store_key=store_key, value=json.dumps(notes, ensure_ascii=False))
+            return f"✅ 已记录到 {category}: {content[:50]}..."
+
+        elif action == "update":
+            if category not in notes:
+                return f"❌ 分类 {category} 不存在"
+            # 更新最后一条
+            if notes[category]:
+                notes[category][-1]["content"] = content
+                await store.set(user_key="", store_key=store_key, value=json.dumps(notes, ensure_ascii=False))
+                return f"✅ 已更新 {category} 最后一条笔记"
+            return f"❌ {category} 为空，无法更新"
+
+        elif action == "delete":
+            if category in notes:
+                del notes[category]
+                await store.set(user_key="", store_key=store_key, value=json.dumps(notes, ensure_ascii=False))
+                return f"✅ 已删除分类 {category}"
+            return f"❌ 分类 {category} 不存在"
+
+        elif action == "list":
+            items = notes.get(category, [])
+            if not items:
+                return f"📭 {category} 暂无笔记"
+            lines = [f"📝 {category} 笔记（{len(items)} 条）：", ""]
+            for i, item in enumerate(items, 1):
+                lines.append(f"{i}. [{item.get('time', '?')}] {item.get('content', '')}")
+            return "\n".join(lines)
+
+        else:
+            return f"❌ 不支持的 action: {action}"
+    except Exception as e:
+        return f"❌ 笔记操作失败: {str(e)}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
