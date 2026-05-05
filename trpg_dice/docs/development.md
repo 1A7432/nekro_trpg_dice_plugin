@@ -257,7 +257,7 @@ def register_prompt_injections(plugin, character_manager, vector_db, store, conf
 例如添加 `random_madness` 方法供AI作为KP时调用：
 
 ```python
-@plugin.mount_sandbox_method(SandboxMethodType.TOOL, "random_madness", "随机生成疯狂症状")
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "random_madness", "随机生成疯狂症状")
 async def random_madness(_ctx: AgentCtx, madness_type: str = "temp") -> str:
     """
     随机生成COC7疯狂症状
