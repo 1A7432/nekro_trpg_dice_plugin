@@ -149,6 +149,18 @@ class ModuleInitializer:
         {{"time": "时间点", "event": "事件描述", "involved": ["涉及NPC"]}}
     ],
     "background": "模组背景故事（世界观、历史事件、起因等）",
+    "threats": [
+        {{
+            "name": "威胁名称（如：野狗群头领）",
+            "type": "怪物/NPC/环境/陷阱",
+            "description": "外在描述（玩家可见特征）",
+            "stats": {{"HP": "生命值", "STR": "力量", "CON": "体质", "DEX": "敏捷", "SIZ": "体型"}},
+            "attacks": ["攻击方式（如：撕咬 1d6+db）"],
+            "san_loss": "理智损失（如：0/1d6）",
+            "special_abilities": "特殊能力（如：群体攻击、不可驯服）",
+            "location": "出现地点"
+        }}
+    ],
     "truths": [
         {{
             "name": "真相名称",
@@ -192,9 +204,9 @@ class ModuleInitializer:
             result = json.loads(content)
 
             # 确保必要字段存在
-            for field in ["scenes", "npcs", "clues", "timeline", "background", "truths", "summary"]:
+            for field in ["scenes", "npcs", "clues", "timeline", "background", "threats", "truths", "summary"]:
                 if field not in result:
-                    result[field] = [] if field in ["scenes", "npcs", "clues", "timeline", "truths"] else ""
+                    result[field] = [] if field in ["scenes", "npcs", "clues", "timeline", "threats", "truths"] else ""
 
             return result
 
@@ -221,6 +233,7 @@ class ModuleInitializer:
             "clues": [],
             "timeline": [],
             "background": text[:500] if len(text) > 500 else text,
+            "threats": [],
             "truths": [],
             "summary": text[:100] if len(text) > 100 else text,
         }
@@ -268,6 +281,9 @@ class ModuleInitializer:
 
         # clues: keeper 含全部，player 初始为空（跑团中逐步解锁）
         keeper_pool["clues"] = analysis.get("clues", [])
+
+        # threats: 只给 keeper（战斗数据不可告知玩家）
+        keeper_pool["threats"] = analysis.get("threats", [])
 
         # timeline, truths: 只给 keeper
         keeper_pool["timeline"] = analysis.get("timeline", [])

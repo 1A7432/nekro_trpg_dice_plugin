@@ -862,6 +862,148 @@ async def get_module_element_detail(_ctx: AgentCtx, element_type: str, name: str
         return f"❌ 获取详情失败: {str(e)}"
 
 
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "get_module_summary", "获取模组全局概要（KP-only，仅限AI观察）")
+async def get_module_summary(_ctx: AgentCtx) -> str:
+    """
+    获取模组的 summary + background + truths + timeline + 场景/NPC/威胁清单。
+    开局前调用一次，建立幕后全局认知。
+    """
+    chat_key = _ctx.chat_key
+    try:
+        catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
+        if not catalog_data:
+            return "❌ 当前没有模组数据，请先上传模组并初始化"
+
+        catalog = json.loads(catalog_data)
+        lines = [
+            "# 模组全局概要",
+            "",
+            f"## 一句话概要",
+            catalog.get("summary", "无"),
+            "",
+            f"## 背景故事",
+            catalog.get("background", "无"),
+            "",
+            f"## 时间线（{len(catalog.get('timeline', []))} 条）",
+        ]
+        for t in catalog.get("timeline", []):
+            involved = ", ".join(t.get("involved", []))
+            lines.append(f"- {t.get('time', '?')}: {t.get('event', '')} (涉及: {involved})")
+
+        lines.extend(["", f"## 幕后真相（{len(catalog.get('truths', []))} 条）"])
+        for t in catalog.get("truths", []):
+            lines.append(f"- {t.get('name', '?')}: {t.get('description', '')}")
+            if t.get("revealed_by"):
+                lines.append(f"  揭示方式: {t['revealed_by']}")
+
+        lines.extend(["", f"## 威胁清单（{len(catalog.get('threats', []))} 个）"])
+        for t in catalog.get("threats", []):
+            lines.append(f"- {t.get('name', '?')} ({t.get('type', '')}) | SAN损失: {t.get('san_loss', '无')} | 位置: {t.get('location', '未知')}")
+
+        lines.extend(["", f"## 场景清单（{len(catalog.get('scenes', []))} 个）"])
+        for s in catalog.get("scenes", []):
+            clues_count = len(s.get("clues", []))
+            npcs_count = len(s.get("npcs_present", []))
+            lines.append(f"- {s.get('name', '?')} (线索:{clues_count} NPC:{npcs_count})")
+
+        lines.extend(["", f"## NPC 清单（{len(catalog.get('npcs', []))} 个）"])
+        for n in catalog.get("npcs", []):
+            lines.append(f"- {n.get('name', '?')} ({n.get('role', '')})")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"❌ 获取概要失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "unlock_for_player", "将守秘人信息解锁为玩家可见")
+async def unlock_for_player(_ctx: AgentCtx, element_type: str, name: str) -> str:
+    """
+    当玩家通过调查/对话发现某条线索、某个NPC真相或某个场景细节时，
+    调用此方法将对应信息从 keeper_pool 解锁到 player_pool。
+    边跑团边维护已解锁信息，避免剧透和混乱。
+
+    Args:
+        element_type: scenes(场景)/npcs(NPC)/clues(线索)/truths(真相)
+        name: 元素名称（支持模糊匹配）
+    """
+    chat_key = _ctx.chat_key
+    try:
+        keeper_data = await store.get(user_key="", store_key=f"module_keeper_pool.{chat_key}")
+        player_data = await store.get(user_key="", store_key=f"module_player_pool.{chat_key}")
+
+        if not keeper_data:
+            return "❌ 没有守秘人知识池"
+
+        keeper = json.loads(keeper_data)
+        player = json.loads(player_data) if player_data else {}
+
+        items = keeper.get(element_type, [])
+        target = None
+        name_lower = name.lower()
+        for item in items:
+            item_name = item.get("name", item.get("title", ""))
+            if item_name.lower() == name_lower:
+                target = item
+                break
+        if not target:
+            for item in items:
+                item_name = item.get("name", item.get("title", ""))
+                if name_lower in item_name.lower():
+                    target = item
+                    break
+
+        if not target:
+            return f'❌ 在 keeper_pool 的 {element_type} 中未找到 "{name}"'
+
+        target_name = target.get("name", target.get("title", "?"))
+
+        if element_type == "scenes":
+            unlocked = {
+                "name": target_name,
+                "description": target.get("description", ""),
+                "npcs_present": target.get("npcs_present", []),
+                "clues": [
+                    {"name": c.get("name", ""), "description": c.get("description", ""), "discovery_method": c.get("discovery_method", "")}
+                    for c in target.get("clues", [])
+                ],
+            }
+        elif element_type == "npcs":
+            unlocked = {
+                "name": target_name,
+                "description": target.get("description", ""),
+                "role": target.get("role", ""),
+            }
+        elif element_type == "clues":
+            unlocked = {
+                "name": target_name,
+                "description": target.get("description", ""),
+                "location": target.get("location", ""),
+                "leads_to": target.get("leads_to", ""),
+            }
+        elif element_type == "truths":
+            unlocked = {
+                "name": target_name,
+                "description": target.get("description", ""),
+            }
+        else:
+            return f"❌ 不支持的元素类型: {element_type}"
+
+        player.setdefault(element_type, [])
+        # 去重：如果已经解锁过，跳过
+        already = any(
+            (u.get("name") == target_name or u.get("title") == target_name)
+            for u in player[element_type]
+        )
+        if already:
+            return f"ℹ️ {element_type}: {target_name} 已在玩家知识池中"
+
+        player[element_type].append(unlocked)
+        await store.set(user_key="", store_key=f"module_player_pool.{chat_key}", value=json.dumps(player, ensure_ascii=False))
+        return f"✅ 已解锁 {element_type}: {target_name} → 玩家知识池"
+    except Exception as e:
+        return f"❌ 解锁失败: {str(e)}"
+
+
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
 async def delete_character(_ctx: AgentCtx, name: str) -> str:
     """删除指定角色卡"""
