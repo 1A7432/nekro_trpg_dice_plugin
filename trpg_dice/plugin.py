@@ -598,7 +598,7 @@ async def start_module_initialization(_ctx: AgentCtx) -> str:
         if status == "processing":
             return "⏳ 模组初始化正在进行中，请稍候..."
 
-        chunks = await document_manager.list_all_chunks(chat_key)
+        chunks = await vector_db.list_all_chunks(chat_key)
         if not chunks:
             return "❌ 当前没有上传的模组文档，请先上传 module/story 类型文档"
 
