@@ -31,6 +31,7 @@ from nekro_agent.api.schemas import AgentCtx
 from .core.dice_engine import DiceParser, DiceRoller, DiceResult, config as dice_config
 from .core.character_manager import CharacterManager, CharacterSheet, CharacterTemplate
 from .core.document_manager import VectorDatabaseManager, DocumentProcessor
+from .core.module_initializer import ModuleInitializer
 from .core.prompt_injection import register_prompt_injections
 from .core.battle_report import BattleReportManager
 
@@ -96,6 +97,27 @@ class TRPGDiceConfig(ConfigBase):
         title="最大搜索结果数",
         description="向量检索时返回的最大结果数量",
     )
+    MODULE_INIT_MODEL_GROUP: str = Field(
+        default="chat",
+        title="模组初始化模型组",
+        description="后台分析模组 chunk 并生成 Catalog 的 LLM 模型组",
+        json_schema_extra={"ref_model_groups": True, "model_type": "chat"},
+    )
+    MODULE_INIT_MAX_CONCURRENT: int = Field(
+        default=5,
+        title="模组初始化最大并发数",
+        description="后台分析 chunk 时的最大并发请求数",
+    )
+    MODULE_INIT_MAX_CHUNK_TOKENS: int = Field(
+        default=3000,
+        title="模组初始化单 chunk 最大 Token",
+        description="分析单个 chunk 时输入的最大 token 数",
+    )
+    MODULE_INIT_AUTO_START: bool = Field(
+        default=True,
+        title="上传模组后自动初始化",
+        description="上传模组后是否在后台自动启动 LLM 分析",
+    )
 
 
 # 获取配置和存储
@@ -118,6 +140,7 @@ vector_db = VectorDatabaseManager(
     max_search_results=config.MAX_SEARCH_RESULTS,
 )
 battle_report_manager = BattleReportManager(store)
+module_initializer = ModuleInitializer(store, vector_db, config)
 
 # 注册提示词注入
 register_prompt_injections(plugin, character_manager, vector_db, store, config, battle_report_manager)
@@ -499,6 +522,68 @@ async def list_characters(_ctx: AgentCtx) -> str:
         return response
     except Exception as e:
         return f"❌ 获取角色列表失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "get_module_catalog", "获取模组目录（仅限AI观察）")
+async def get_module_catalog(_ctx: AgentCtx) -> str:
+    """
+    获取当前聊天频道的模组 Catalog 目录。
+    返回所有已分析 chunk 的结构化索引，包含类型、敏感度、摘要、关键词等。
+    ⚠️ 这是AGENT方法，结果只给AI观察，不可直接输出给玩家。
+    """
+    chat_key = _ctx.chat_key
+    try:
+        catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
+        if not catalog_data:
+            return "❌ 当前没有模组目录，请先上传模组（module/story 类型）"
+
+        catalog = json.loads(catalog_data)
+        status = await store.get(user_key="", store_key=f"module_init_status.{chat_key}")
+
+        response_lines = [
+            f"📘 模组目录（状态: {status or 'unknown'}）",
+            f"共 {len(catalog)} 个分片：",
+            "",
+        ]
+
+        for entry in catalog:
+            risk_emoji = {"keeper_only": "🔴", "player_visible": "🟢", "mixed": "🟡", "unknown": "⚪"}.get(
+                entry.get("risk_level", "unknown"), "⚪"
+            )
+            type_emoji = {"scene": "🏠", "npc": "👤", "clue": "🔍", "rule": "📜", "background": "🌍"}.get(
+                entry.get("type", "other"), "📄"
+            )
+            response_lines.append(
+                f"{risk_emoji}{type_emoji} [{entry.get('type', '?')}] {entry.get('doc_name', '?')} #{entry.get('chunk_index', 0)}"
+            )
+            response_lines.append(f"   摘要: {entry.get('summary', '')}")
+            response_lines.append(f"   关键词: {', '.join(entry.get('keywords', []))}")
+            if entry.get("spoiler_tags"):
+                response_lines.append(f"   ⚠️ 剧透: {', '.join(entry['spoiler_tags'])}")
+            response_lines.append("")
+
+        return "\n".join(response_lines)
+    except Exception as e:
+        return f"❌ 获取模组目录失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "update_knowledge_pool", "更新模组知识池")
+async def update_knowledge_pool(_ctx: AgentCtx, player_visible: str, keeper_only: str) -> str:
+    """
+    更新当前聊天频道的模组知识池。
+    AI 在跑团过程中可以持续追加新解锁的玩家信息和守秘人笔记。
+
+    Args:
+        player_visible: 玩家视角已解锁的信息（JSON 字符串）
+        keeper_only: 守秘人专属幕后信息（JSON 字符串）
+    """
+    chat_key = _ctx.chat_key
+    try:
+        await store.set(user_key="", store_key=f"module_player_pool.{chat_key}", value=player_visible)
+        await store.set(user_key="", store_key=f"module_keeper_pool.{chat_key}", value=keeper_only)
+        return "✅ 知识池已更新"
+    except Exception as e:
+        return f"❌ 更新知识池失败: {str(e)}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
@@ -937,9 +1022,14 @@ async def upload_document(_ctx: AgentCtx, file_path: str, doc_type: str = "modul
             document_type=doc_type
         )
         
+        # 触发后台模组初始化
+        if config.MODULE_INIT_AUTO_START and doc_type in ("module", "story"):
+            asyncio.create_task(module_initializer.initialize(chat_key))
+        
         # 返回成功信息
         doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}[doc_type]
-        result = f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段\n📄 提取了 {len(text_content)} 个字符的文本内容"
+        init_msg = "\n🔄 后台正在初始化模组知识池..." if (config.MODULE_INIT_AUTO_START and doc_type in ("module", "story")) else ""
+        result = f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段\n📄 提取了 {len(text_content)} 个字符的文本内容{init_msg}"
 
         # 确保总是有返回值，不会为空
         if not result:
@@ -2894,16 +2984,22 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
     
     try:
         document_id = str(uuid.uuid4())
+        chat_key = str(getattr(event, "group_id", None) or event.user_id)
         chunk_count = await vector_db.store_document(
             document_id=document_id,
             filename=filename,
             text_content=text_content,
-            chat_key=str(getattr(event, "group_id", None) or event.user_id),
+            chat_key=chat_key,
             document_type=doc_type
         )
         
+        # 触发后台模组初始化
+        if config.MODULE_INIT_AUTO_START and doc_type in ("module", "story"):
+            asyncio.create_task(module_initializer.initialize(chat_key))
+        
         doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}[doc_type]
-        await finish_with(matcher, f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段")
+        init_msg = "\n🔄 后台正在初始化模组知识池..." if (config.MODULE_INIT_AUTO_START and doc_type in ("module", "story")) else ""
+        await finish_with(matcher, f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段{init_msg}")
         return
     except Exception as e:
         # 检查是否是FinishedException，如果是则让它正常传播

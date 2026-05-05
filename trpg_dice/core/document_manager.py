@@ -504,6 +504,45 @@ class VectorDatabaseManager:
 
         return documents
 
+    async def list_all_chunks(
+        self, chat_key: str, limit: int = 1000, offset: Any = None
+    ) -> List[Dict[str, Any]]:
+        """
+        列出当前聊天频道下的所有文档 chunk（用于模组初始化）
+
+        Args:
+            chat_key: 聊天会话ID
+            limit: 单次返回的最大 chunk 数量
+            offset: 分页偏移
+
+        Returns:
+            List[Dict]: chunk 列表，每个 chunk 包含完整 payload
+        """
+        await self._ensure_collection_exists()
+        client = await self._get_client()
+
+        filter_conditions = {
+            "must": [
+                {"key": "chat_key", "match": {"value": chat_key}},
+            ]
+        }
+
+        search_result = await client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=filter_conditions,
+            limit=limit,
+            offset=offset,
+            with_payload=True,
+        )
+
+        chunks = []
+        for record in search_result[0]:
+            payload = dict(record.payload)
+            payload["id"] = str(record.id)
+            chunks.append(payload)
+
+        return chunks
+
     async def get_document_context(
         self, query: str, chat_key: str, max_context_length: int = 8000
     ) -> str:
