@@ -100,23 +100,23 @@ class TRPGDiceConfig(ConfigBase):
     MODULE_INIT_MODEL_GROUP: str = Field(
         default="default",
         title="模组初始化模型组",
-        description="后台分析模组 chunk 并生成 Catalog 的 LLM 模型组",
+        description="全文分析模组的 LLM 模型组。建议使用支持 1M 上下文的模型（如 Kimi K1.5、Claude 3.5/4、Gemini 1.5 Pro 等），一般 COC 模组 2-10 万字可直接塞下",
         json_schema_extra={"ref_model_groups": True, "model_type": "chat"},
     )
-    MODULE_INIT_MAX_CONCURRENT: int = Field(
-        default=5,
-        title="模组初始化最大并发数",
-        description="后台分析 chunk 时的最大并发请求数",
+    MODULE_INIT_MAX_INPUT_TOKENS: int = Field(
+        default=500000,
+        title="模组初始化最大输入 Token",
+        description="全文分析时输入的最大字符数（粗略按 1 token ≈ 1 中文字符）。默认 50 万字符，对应约 1M 上下文窗口",
     )
-    MODULE_INIT_MAX_CHUNK_TOKENS: int = Field(
-        default=3000,
-        title="模组初始化单 chunk 最大 Token",
-        description="分析单个 chunk 时输入的最大 token 数",
+    MODULE_INIT_MAX_OUTPUT_TOKENS: int = Field(
+        default=8192,
+        title="模组初始化最大输出 Token",
+        description="全文分析时 LLM 输出的最大 token 数。结构化模组数据通常需要 4K-8K",
     )
     MODULE_INIT_AUTO_START: bool = Field(
         default=True,
         title="上传模组后自动初始化",
-        description="上传模组后是否在后台自动启动 LLM 分析",
+        description="上传模组后是否在后台自动启动 LLM 全文分析",
     )
 
 
@@ -707,7 +707,7 @@ async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "kee
 @plugin.mount_sandbox_method(SandboxMethodType.AGENT, "inspect_knowledge_pool", "检查知识池原始内容（KP-only，仅限AI观察）")
 async def inspect_knowledge_pool(_ctx: AgentCtx, pool_type: str = "keeper") -> str:
     """
-    直接输出知识池的原始 JSON 内容，用于诊断知识池结构和数据问题。
+    直接输出知识池的原始内容，用于诊断知识池结构和数据问题。
     当 query_knowledge_pool 搜不到内容时，可用此方法查看知识池里实际有什么。
 
     Args:
@@ -724,26 +724,40 @@ async def inspect_knowledge_pool(_ctx: AgentCtx, pool_type: str = "keeper") -> s
             return f"❌ 当前没有{'守秘人' if pool_type == 'keeper' else '玩家'}知识池"
 
         pool = json.loads(pool_data)
-        total_items = sum(len(v) for v in pool.values())
+        total_items = sum(len(v) for v in pool.values() if isinstance(v, list))
 
         lines = [
-            f"{'🔴 守秘人知识池' if pool_type == 'keeper' else '🟢 玩家知识池'} 原始内容（共 {total_items} 条）",
+            f"{'🔴 守秘人知识池' if pool_type == 'keeper' else '🟢 玩家知识池'} 原始内容",
+            f"summary: {pool.get('summary', '')}",
+            f"background: {pool.get('background', '')[:200]}..." if len(pool.get("background", "")) > 200 else f"background: {pool.get('background', '')}",
             "",
         ]
 
         for category, items in pool.items():
+            if category in ("summary", "background"):
+                continue
             if not items:
+                continue
+            if isinstance(items, str):
+                lines.append(f"## {category}: {items}")
                 continue
             lines.append(f"## {category} ({len(items)} 条)")
             for item in items:
-                lines.append(f"- title: {item.get('title', '?')}")
-                lines.append(f"  summary: {item.get('summary', '')}")
-                if item.get("keywords"):
-                    lines.append(f"  keywords: {item.get('keywords')}")
-                if item.get("spoiler_tags"):
-                    lines.append(f"  spoiler_tags: {item.get('spoiler_tags')}")
-                if item.get("tags"):
-                    lines.append(f"  tags: {item.get('tags')}")
+                if isinstance(item, str):
+                    lines.append(f"- {item}")
+                else:
+                    name = item.get("name", item.get("title", "?"))
+                    lines.append(f"- {name}")
+                    for k, v in item.items():
+                        if k in ("name", "title"):
+                            continue
+                        if isinstance(v, list):
+                            if v:
+                                lines.append(f"  {k}: {v}")
+                        elif isinstance(v, str) and len(v) > 200:
+                            lines.append(f"  {k}: {v[:200]}...")
+                        else:
+                            lines.append(f"  {k}: {v}")
                 lines.append("")
 
         return "\n".join(lines)

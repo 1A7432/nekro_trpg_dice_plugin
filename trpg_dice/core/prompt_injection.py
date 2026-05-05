@@ -59,7 +59,7 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• start_module_initialization() - 手动触发模组知识池初始化（上传文档后自动初始化，也可手动调用）",
         "• get_module_init_status() - 查询模组知识池初始化状态",
         "• get_module_catalog() - 获取模组完整目录索引（AGENT:结果只给AI观察，包含所有场景/NPC/线索的分类和敏感度标记）",
-        "• query_knowledge_pool(query, pool_type='keeper') - 查询模组知识池内容（AGENT:结果只给AI观察）。支持多关键词空格分隔，任意匹配即可",
+        "• query_knowledge_pool(query, pool_type='keeper') - 查询模组知识池内容（AGENT:结果只给AI观察）。支持多关键词空格分隔，任意匹配即可。keeper池含scenes/npcs/clues/truths/timeline/background",
         "• inspect_knowledge_pool(pool_type='keeper') - 直接查看知识池原始内容（AGENT:结果只给AI观察，用于诊断）",
         "• update_knowledge_pool(player_visible, keeper_only) - 更新模组知识池（跑团过程中追加新解锁信息）",
         "",
