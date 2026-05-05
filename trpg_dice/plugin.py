@@ -100,18 +100,18 @@ class TRPGDiceConfig(ConfigBase):
     MODULE_INIT_MODEL_GROUP: str = Field(
         default="default",
         title="模组初始化模型组",
-        description="全文分析模组的 LLM 模型组。建议使用支持 1M 上下文的模型（如 Kimi K1.5、Claude 3.5/4、Gemini 1.5 Pro 等），一般 COC 模组 2-10 万字可直接塞下",
+        description="全文分析模组的 LLM 模型组。强烈推荐 DeepSeek V4（1M 上下文 / 384K 最大输出），一般 COC 模组 2-10 万字可直接塞下全文",
         json_schema_extra={"ref_model_groups": True, "model_type": "chat"},
     )
     MODULE_INIT_MAX_INPUT_TOKENS: int = Field(
-        default=500000,
-        title="模组初始化最大输入 Token",
-        description="全文分析时输入的最大字符数（粗略按 1 token ≈ 1 中文字符）。默认 50 万字符，对应约 1M 上下文窗口",
+        default=800000,
+        title="模组初始化最大输入字符数",
+        description="全文分析时输入的最大字符数（粗略按 1 token ≈ 1 中文字符）。默认 80 万字符，适配 DeepSeek V4 的 1M 上下文窗口",
     )
     MODULE_INIT_MAX_OUTPUT_TOKENS: int = Field(
-        default=8192,
+        default=32768,
         title="模组初始化最大输出 Token",
-        description="全文分析时 LLM 输出的最大 token 数。结构化模组数据通常需要 4K-8K",
+        description="全文分析时 LLM 输出的最大 token 数。默认 32K，充分利用 DeepSeek V4 的 384K 输出能力，可输出超详细结构化模组数据",
     )
     MODULE_INIT_AUTO_START: bool = Field(
         default=True,

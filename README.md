@@ -128,23 +128,29 @@ pip install python-docx   # Word文档支持
 
 ### 模组初始化模型配置（全文分析必需）
 
-本插件上传模组后会自动调用 LLM 对模组**全文**进行结构化分析（提取场景、NPC、线索、时间线等）。这要求模型支持长上下文：
+本插件上传模组后会自动调用 LLM 对模组**全文**进行结构化分析（提取场景、NPC、线索、时间线等）。**强烈推荐使用 DeepSeek V4**：
 
 | 要求 | 说明 |
 |---|---|
-| **上下文窗口** | ≥1M Token（推荐），≥128K Token（最低，仅支持小型模组） |
-| **输出长度** | ≥8K Token（推荐），≥4K Token（最低） |
-| **支持的模型示例** | Kimi `kimi-k1.5` / `moonshot-v1-128k`、Claude `claude-3-5-sonnet` / `claude-4-sonnet`、Gemini `gemini-1.5-pro`、GPT-4o |
+| **上下文窗口** | ≥1M Token（推荐 DeepSeek V4），≥128K Token（最低，仅支持小型模组） |
+| **输出长度** | ≥32K Token（推荐 DeepSeek V4），≥8K Token（最低） |
+| **推荐模型** | **DeepSeek V4 Pro / V4 Flash**（1M 上下文，384K 最大输出，性价比极高） |
+
+**DeepSeek V4 配置示例**：
+- 模型组名称：`deepseek-v4`
+- Chat 模型：`deepseek-v4-pro` 或 `deepseek-v4-flash`
+- Base URL：`https://api.deepseek.com`
+- API Key：你的 DeepSeek API Key
 
 **⚠️ 不兼容的模型**：
-- 仅支持 4K/8K 上下文的旧模型（无法塞下完整模组文本）
-- 输出长度限制过低的模型（结构化数据通常需要 4K-8K 输出）
+- 仅支持 4K/8K/32K 上下文的旧模型（无法塞下完整模组文本）
+- 输出长度限制低于 8K 的模型（结构化模组数据通常需要 16K-32K 输出）
 
 **配置位置**：
-1. Nekro Agent WebUI → 系统设置 → 模型组配置 → 创建一个支持长上下文的聊天模型组
-2. 插件配置 → `MODULE_INIT_MODEL_GROUP` → 选择上述模型组
-3. 插件配置 → `MODULE_INIT_MAX_INPUT_TOKENS` → 根据模型上下文调整（默认 50 万字符）
-4. 插件配置 → `MODULE_INIT_MAX_OUTPUT_TOKENS` → 根据模型输出限制调整（默认 8192）
+1. Nekro Agent WebUI → 系统设置 → 模型组配置 → 创建 `deepseek-v4` 模型组
+2. 插件配置 → `MODULE_INIT_MODEL_GROUP` → 选择 `deepseek-v4`
+3. 插件配置 → `MODULE_INIT_MAX_INPUT_TOKENS` → 默认 80 万字符（适配 1M 上下文）
+4. 插件配置 → `MODULE_INIT_MAX_OUTPUT_TOKENS` → 默认 32K（充分利用 DeepSeek V4 的 384K 输出能力）
 
 ### 基础使用
 
