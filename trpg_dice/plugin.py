@@ -82,17 +82,17 @@ class TRPGDiceConfig(ConfigBase):
         description="是否启用文档向量化存储功能",
     )
     CHUNK_SIZE: int = Field(
-        default=1000,
+        default=4000,
         title="文档分块大小",
-        description="文档分块时每块的字符数",
+        description="文档分块时每块的最大字符数，建议与嵌入模型支持的最大 token 长度匹配",
     )
     CHUNK_OVERLAP: int = Field(
-        default=200,
+        default=800,
         title="分块重叠大小",
-        description="文档分块时重叠的字符数",
+        description="文档分块时相邻块之间重叠的字符数，用于保持语义连续性",
     )
     MAX_SEARCH_RESULTS: int = Field(
-        default=5,
+        default=15,
         title="最大搜索结果数",
         description="向量检索时返回的最大结果数量",
     )
@@ -112,7 +112,10 @@ dice_config.ENABLE_CRITICAL_EFFECTS = config.ENABLE_CRITICAL_EFFECTS
 character_manager = CharacterManager(store)
 vector_db = VectorDatabaseManager(
     collection_name=plugin.get_vector_collection_name("trpg_documents"),
-    logger=plugin.logger
+    logger=plugin.logger,
+    chunk_size=config.CHUNK_SIZE,
+    chunk_overlap=config.CHUNK_OVERLAP,
+    max_search_results=config.MAX_SEARCH_RESULTS,
 )
 battle_report_manager = BattleReportManager(store)
 

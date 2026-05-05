@@ -610,7 +610,7 @@ git push origin feature/new-feature
 
 ## 嵌入模型配置说明
 
-文档检索功能依赖 Nekro Agent 的  模型组。插件对嵌入模型有以下要求：
+文档检索功能依赖 Nekro Agent 的 `text-embedding` 模型组。插件对嵌入模型有以下要求：
 
 | 指标 | 推荐 | 最低 |
 |---|---|---|
@@ -619,22 +619,22 @@ git push origin feature/new-feature
 
 ### 已知兼容的模型
 
-- 阿里 （推荐，1536/2048维，8192 Token）
-- 阿里 （1024/1536维，8192 Token）
-- OpenAI （1536维，8192 Token）
-- OpenAI （3072维，8192 Token）
+- 阿里 `text-embedding-v4`（推荐，1536/2048维，8192 Token）
+- 阿里 `text-embedding-v3`（1024/1536维，8192 Token）
+- OpenAI `text-embedding-3-small`（1536维，8192 Token）
+- OpenAI `text-embedding-3-large`（3072维，8192 Token）
 
 ### 已知不兼容的模型
 
--  / ：最大仅 2048 Token，无法处理 4000 字符分块
+- `text-embedding-v1` / `text-embedding-v2`：最大仅 2048 Token，无法处理 4000 字符分块
 - 纯聊天模型（GPT-4、Qwen-Max 等）：不具备向量嵌入能力
 
 ### 配置方式
 
-Nekro Agent WebUI → 系统设置 → 模型组配置 →  模型组：
+Nekro Agent WebUI → 系统设置 → 模型组配置 → `text-embedding` 模型组：
 
-- **模型名称**：填写实际的嵌入模型名（如 ）
+- **模型名称**：填写实际的嵌入模型名（如 `text-embedding-v4`）
 - **Base URL**：指向嵌入服务的 API 地址
 - **API Key**：对应的 API 密钥
 
-⚠️ **注意**：插件代码中使用的是模型组的  字段作为嵌入模型名称，请确保该字段填写的是嵌入模型而非聊天模型。
+⚠️ **注意**：插件代码中使用的是模型组的 `CHAT_MODEL` 字段作为嵌入模型名称，请确保该字段填写的是嵌入模型而非聊天模型。

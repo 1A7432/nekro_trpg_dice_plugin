@@ -171,11 +171,21 @@ class VectorDatabaseManager:
     向量数据库管理器 - 处理文档的向量化存储和检索
     """
 
-    def __init__(self, collection_name: str = "trpg_documents", logger=None):
+    def __init__(
+        self,
+        collection_name: str = "trpg_documents",
+        logger=None,
+        chunk_size: int = 4000,
+        chunk_overlap: int = 800,
+        max_search_results: int = 15,
+    ):
         self.collection_name = collection_name
         self.qdrant_client = None
         self.embedding_dim = 1536  # text-embedding-v4支持1536维度，默认使用1536
         self.document_processor = DocumentProcessor()
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.max_search_results = max_search_results
         if logger is None:
             from nekro_agent.api import core
             self.logger = core.logger
@@ -265,9 +275,9 @@ class VectorDatabaseManager:
         await self._ensure_collection_exists()
         client = await self._get_client()
 
-        # 分割文档 - text-embedding-v4支持8192 token长度，可以适当增大块大小
+        # 分割文档 - 使用配置的分块大小和重叠
         chunks = self.document_processor.chunk_text(
-            text_content, chunk_size=4000, overlap=800
+            text_content, chunk_size=self.chunk_size, overlap=self.chunk_overlap
         )
 
         # 生成向量并存储每个块
@@ -498,7 +508,9 @@ class VectorDatabaseManager:
         self, query: str, chat_key: str, max_context_length: int = 8000
     ) -> str:
         """获取与查询相关的文档上下文"""
-        search_results = await self.search_documents(query, chat_key, limit=15)
+        search_results = await self.search_documents(
+            query, chat_key, limit=self.max_search_results
+        )
 
         if not search_results:
             return ""
