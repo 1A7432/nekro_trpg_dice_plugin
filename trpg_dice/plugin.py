@@ -1417,6 +1417,10 @@ async def generate_session_report(_ctx: AgentCtx) -> str:
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(markdown_report)
         
+        # 同时存入 PluginStore，供 get_battle_report_markdown 读取
+        report_key = f"battle_report.{_ctx.chat_key}.{timestamp}"
+        await store.set(store_key=report_key, value=markdown_report)
+        
         # 向AI提供可访问的沙盒路径
         sandbox_file_path = _ctx.fs.forward_file(report_path)
         
