@@ -85,7 +85,8 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• **KP 主持工作流**: 1) 开局前 get_module_summary() 建立全局; 2) list_module_elements 查看场景/NPC/威胁清单; 3) 玩家行动到哪，get_module_element_detail 查对应详情; 4) 发现线索后 unlock_for_player 解锁; 5) 遇战斗先查 threats stats/san_loss/attacks; 6) 即兴创作或世界变更用 kp_note 记录",
         "• **查询优先级**: 查设定时先用知识池工具（get_module_summary / list_module_elements / get_module_element_detail），知识池没有的细节再用 search_documents 向量检索补充",
         "• **禁止预写结果**: 所有检定必须先真实掷骰。战斗数值必须从 threats 获取，不可临场编造。玩家去模组没写的场景时，你可以即兴创作并用 kp_note 记录下来保持后续一致",
-        "• **世界状态一致**: NPC 死亡、门被破坏、建筑烧毁等变更，用 kp_note('add', 'world_changes', '描述') 记录，后续剧情必须参考这些笔记"
+        "• **世界状态一致**: NPC 死亡、门被破坏、建筑烧毁等变更，用 kp_note('add', 'world_changes', '描述') 记录，后续剧情必须参考这些笔记",
+        "• **开局强制播报**: 当战情面板中【调查背景】有内容时，你首次向玩家描述场景前，必须先完整陈述调查员已知背景（起因/委托人/目标/当前地点原因），再进入场景描写。不要让玩家觉得自己(突然出现在某个地方)",
     ]
 
     return "\n".join(prompt_parts)
@@ -183,17 +184,34 @@ async def inject_game_state_prompt(_ctx, character_manager, store) -> str:
         except Exception:
             pass
 
-        # ── 已确认事实（最近5条） ──
+        # ── 调查背景（opening_facts 优先显示） ──
         try:
             notes_data = await store.get(user_key="", store_key=f"kp_notes.{chat_key}")
             if notes_data:
                 notes = json.loads(notes_data)
-                facts = notes.get("confirmed_facts", [])[-5:]
-                if facts:
+                all_facts = notes.get("confirmed_facts", [])
+                opening = [f for f in all_facts if f.get("time") == "开局"]
+                if opening:
                     lines.append("")
+                    lines.append("📋 调查背景:")
+                    for item in opening[-5:]:
+                        lines.append(f"   • {item.get('content', '')}")
+        except Exception:
+            pass
+
+        # ── 已确认事实（最近5条，不含开局） ──
+        try:
+            notes_data = await store.get(user_key="", store_key=f"kp_notes.{chat_key}")
+            if notes_data:
+                notes = json.loads(notes_data)
+                facts = [f for f in notes.get("confirmed_facts", []) if f.get("time") != "开局"][-5:]
+                lines.append("")
+                if facts:
                     lines.append("📌 已确认事实:")
                     for item in facts:
                         lines.append(f"   • {item.get('content', '')}")
+                else:
+                    lines.append("📌 已确认事实: 暂无")
         except Exception:
             pass
 
