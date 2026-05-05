@@ -55,10 +55,8 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• upload_document(file_path, doc_type='module') - 上传文档（module/rule/story/background）",
         "• delete_document(file_path) - 删除指定文档",
         "• list_my_documents(doc_type=None) - 列出已上传文档",
-        "• search_documents(query, doc_type=None, limit=5) - KP检索模组文档（AGENT:结果只给AI观察，必须消化后转化为调查员视角再输出）",
         "• start_module_initialization() - 手动触发模组知识池初始化（上传文档后自动初始化，也可手动调用）",
         "• get_module_init_status() - 查询模组知识池初始化状态",
-        "• get_module_catalog() - 获取模组完整目录索引（AGENT:结果只给AI观察，包含所有场景/NPC/线索的分类和敏感度标记）",
         "• get_module_summary() - 开局前获取模组全局概要：summary/background/truths/timeline/威胁清单/场景清单/NPC清单（AGENT:结果只给AI观察）",
         "• list_module_elements(element_type='scenes') - 列出模组元素名称清单：scenes/npcs/clues/truths/threats/timeline（AGENT:结果只给AI观察）",
         "• get_module_element_detail(element_type, name) - 获取单个场景/NPC/线索/威胁的完整详情（AGENT:结果只给AI观察，不截断）",
@@ -68,7 +66,6 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• update_knowledge_pool(player_visible_patch, keeper_only_patch) - 增量更新知识池（BEHAVIOR，传入局部JSON自动合并）",
         "• inspect_knowledge_pool(pool_type='keeper') - dump 知识池全部原始内容（AGENT:内容过多时优先用 list + get_detail）",
         "• search_documents(query, doc_type=None, limit=5) - 向量检索原始文档（AGENT:知识池查不到细节时再用）",
-        "• update_knowledge_pool(player_visible, keeper_only) - 更新模组知识池（跑团过程中追加新解锁信息）",
         "",
         "## 行为准则:",
         "• 主动使用合适的工具来增强游戏体验",
@@ -82,7 +79,11 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "• **掷骰优先原则**: 所有检定必须先真实掷骰、读取结果，再依据成功/失败/大成功/大失败来决定剧情后果，绝不预写结果",
         "• **玩家参与原则**: 需要检定时优先提示玩家使用具体的掷骰指令自行掷骰（如提示：请投掷侦察检定，输入 .ra 侦察），让玩家亲手参与；若玩家未响应或不方便操作，再代为调用工具掷骰",
         "• **暗骰透明原则**: 暗骰（如敌人潜行、幕后判定）由 AI KP 自行调用工具掷骰，但必须明确向玩家声明正在进行的掷骰行动（如：'KP 暗骰中... 掷出 63'），不隐瞒检定行为，无需额外解释原因",
-        "• **模组保密原则**: search_documents / answer_document_question 返回的是KP-only内部资料（模组原文、幕后设定、NPC秘密、未触发线索、怪物数据、完整房间清单等），绝不可直接转述给玩家。必须先消化整理，只转化为当前调查员视角可感知的信息再输出。规则条文可以摘要解释，模组剧情必须转化为场景描述"
+        "• **模组保密原则**: get_module_element_detail / query_knowledge_pool / inspect_knowledge_pool 返回的是KP-only内部资料（幕后设定、NPC秘密、未触发线索、怪物数据等），绝不可直接转述给玩家。必须先消化整理，只转化为调查员视角当前可感知的信息再输出",
+        "• **KP 主持工作流**: 1) 开局前 get_module_summary() 建立全局; 2) list_module_elements 查看场景/NPC/威胁清单; 3) 玩家行动到哪，get_module_element_detail 查对应详情; 4) 发现线索后 unlock_for_player 解锁; 5) 遇战斗先查 threats stats/san_loss/attacks; 6) 即兴创作或世界变更用 kp_note 记录",
+        "• **查询优先级**: 查设定时先用知识池工具（get_module_summary / list_module_elements / get_module_element_detail），知识池没有的细节再用 search_documents 向量检索补充",
+        "• **禁止预写结果**: 所有检定必须先真实掷骰。战斗数值必须从 threats 获取，不可临场编造。玩家去模组没写的场景时，你可以即兴创作并用 kp_note 记录下来保持后续一致",
+        "• **世界状态一致**: NPC 死亡、门被破坏、建筑烧毁等变更，用 kp_note('add', 'world_changes', '描述') 记录，后续剧情必须参考这些笔记"
     ]
 
     return "\n".join(prompt_parts)
