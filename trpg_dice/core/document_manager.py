@@ -126,7 +126,7 @@ class DocumentProcessor:
             raise ValueError(f"不支持的文件格式: {extension}")
 
     @staticmethod
-    def chunk_text(text: str, chunk_size: int = 2000, overlap: int = 400) -> List[str]:
+    def chunk_text(text: str, chunk_size: int = 4000, overlap: int = 800) -> List[str]:
         """
         分块处理文本 - text-embedding-v4支持8192 token长度，可以适当增大块大小
 
@@ -267,7 +267,7 @@ class VectorDatabaseManager:
 
         # 分割文档 - text-embedding-v4支持8192 token长度，可以适当增大块大小
         chunks = self.document_processor.chunk_text(
-            text_content, chunk_size=2000, overlap=400
+            text_content, chunk_size=4000, overlap=800
         )
 
         # 生成向量并存储每个块
@@ -495,10 +495,10 @@ class VectorDatabaseManager:
         return documents
 
     async def get_document_context(
-        self, query: str, chat_key: str, max_context_length: int = 2000
+        self, query: str, chat_key: str, max_context_length: int = 8000
     ) -> str:
         """获取与查询相关的文档上下文"""
-        search_results = await self.search_documents(query, chat_key, limit=5)
+        search_results = await self.search_documents(query, chat_key, limit=15)
 
         if not search_results:
             return ""
@@ -525,7 +525,7 @@ class VectorDatabaseManager:
         """基于文档内容回答问题 - text-embedding-v4优化版本"""
         # 搜索相关文档 - text-embedding-v4支持更长查询，提升搜索准确性
         context = await self.get_document_context(
-            question, chat_key, max_context_length=3000
+            question, chat_key, max_context_length=12000
         )
 
         if not context.strip():

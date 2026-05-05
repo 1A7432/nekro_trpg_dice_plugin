@@ -1013,7 +1013,7 @@ async def list_my_documents(_ctx: AgentCtx, doc_type: Optional[str] = None) -> s
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "search_documents", "搜索文档内容")
-async def search_documents(_ctx: AgentCtx, query: str, doc_type: Optional[str] = None, limit: int = 5) -> str:
+async def search_documents(_ctx: AgentCtx, query: str, doc_type: Optional[str] = None, limit: int = 15) -> str:
     """
     搜索文档内容
     
