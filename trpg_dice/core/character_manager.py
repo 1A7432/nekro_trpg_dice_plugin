@@ -594,7 +594,7 @@ class CharacterManager:
         """删除指定角色卡"""
         store_key = f"characters.{chat_key}.{char_name}"
         try:
-            await self.store.set(user_key=user_id, store_key=store_key, value="")
+            await self.store.delete(user_key=user_id, store_key=store_key)
             await self._update_char_list(user_id, chat_key, char_name, add=False)
             return True
         except Exception:

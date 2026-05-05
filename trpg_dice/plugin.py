@@ -765,7 +765,7 @@ async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, init
     store_key = f"initiative.{chat_key}"
 
     try:
-        init_data = await store.get(user_key=user_id, store_key=store_key)
+        init_data = await store.get(user_key="", store_key=store_key)
         if init_data:
             init_list = json.loads(init_data)
         else:
@@ -787,7 +787,7 @@ async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, init
 
             init_list.append({"name": name, "init": initiative})
             init_list.sort(key=lambda x: x["init"], reverse=True)
-            await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+            await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             return f"✅ 已添加 {name} 的先攻: {initiative}"
 
         elif action == "list":
@@ -799,7 +799,7 @@ async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, init
             return response
 
         elif action == "clear":
-            await store.set(user_key=user_id, store_key=store_key, value="[]")
+            await store.set(user_key="", store_key=store_key, value="[]")
             return "✅ 先攻列表已清空"
 
         elif action == "next":
@@ -807,7 +807,7 @@ async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, init
                 return "📋 先攻列表为空"
             current = init_list.pop(0)
             init_list.append(current)
-            await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+            await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             return f"➡️ 当前回合: {current['name']}"
 
         else:
@@ -2367,7 +2367,7 @@ async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, args: Me
             adv_label = ""
         
         # 获取当前先攻列表
-        init_data = await store.get(user_key=user_id, store_key=store_key)
+        init_data = await store.get(user_key="", store_key=store_key)
         init_list = json.loads(init_data) if init_data else []
         
         # 添加角色到先攻列表
@@ -2379,7 +2379,7 @@ async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, args: Me
         
         init_list.append(entry)
         init_list.sort(key=lambda x: x["init"], reverse=True)
-        await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+        await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
         
         response = f"⚔️ {char_name} 先攻: {init_val}{adv_label}"
         if modifier != 0:
@@ -2400,7 +2400,7 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message
     store_key = f"initiative.{chat_key}"
     
     try:
-        init_data = await store.get(user_key=user_id, store_key=store_key)
+        init_data = await store.get(user_key="", store_key=store_key)
         init_list = json.loads(init_data) if init_data else []
         
         # 解析优势劣势
@@ -2427,7 +2427,7 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message
             return
         
         elif clean_command == "clear":
-            await store.set(user_key=user_id, store_key=store_key, value="[]")
+            await store.set(user_key="", store_key=store_key, value="[]")
             await finish_with(matcher, "✅ 先攻列表已清空")
             return
         
@@ -2437,7 +2437,7 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message
                 return
             current = init_list.pop(0)
             init_list.append(current)
-            await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+            await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             await finish_with(matcher, f"➡️ 当前回合: {current['name']}")
             return
         
@@ -2471,7 +2471,7 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message
             
             init_list.append(entry)
             init_list.sort(key=lambda x: x["init"], reverse=True)
-            await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+            await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             
             adv_text = " (优势)" if advantage else " (劣势)" if disadvantage else ""
             await finish_with(matcher, f"✅ {char_name} 先攻: {init_val}{adv_text}")
@@ -2502,7 +2502,7 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, args: Message
             
             init_list.append(entry)
             init_list.sort(key=lambda x: x["init"], reverse=True)
-            await store.set(user_key=user_id, store_key=store_key, value=json.dumps(init_list))
+            await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             
             adv_text = " (优势)" if advantage else " (劣势)" if disadvantage else ""
             await finish_with(matcher, f"✅ {character.name} 先攻: {init_val}{adv_text}")
