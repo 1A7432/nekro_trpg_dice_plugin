@@ -560,48 +560,66 @@ async def inject_session_history_prompt(_ctx, battle_report_manager) -> str:
 
 
 def register_prompt_injections(plugin, character_manager, vector_db, store, config, battle_report_manager):
-    """注册所有提示词注入方法"""
+    """注册所有提示词注入方法
+
+    注意: NekroPlugin 每个插件只能有一个 prompt_inject_method，
+    多个 mount_prompt_inject_method 会相互覆盖。因此将所有注入内容合并为一个。
+    """
 
     @plugin.mount_prompt_inject_method(
-        name="trpg_system_awareness",
-        description="注入TRPG系统基础功能和工具意识"
+        name="trpg_unified_prompt_inject",
+        description="TRPG 统一提示注入：系统功能、游戏状态、专业知识、文档上下文、交互风格、历史记忆"
     )
-    async def _inject_trpg_system_prompt(_ctx) -> str:
-        return await inject_trpg_system_prompt(_ctx)
+    async def _inject_trpg_unified_prompt(_ctx) -> str:
+        parts = []
 
-    @plugin.mount_prompt_inject_method(
-        name="current_game_state",
-        description="注入当前游戏状态和角色信息"
-    )
-    async def _inject_game_state_prompt(_ctx) -> str:
-        # 自动确保有活跃的战报记录
-        await battle_report_manager.ensure_session_started(_ctx.chat_key)
-        return await inject_game_state_prompt(_ctx, character_manager, store)
+        # 1. 上次跑团历史记忆（最高优先级，承接剧情）
+        try:
+            await battle_report_manager.ensure_session_started(_ctx.chat_key)
+            history = await inject_session_history_prompt(_ctx, battle_report_manager)
+            if history:
+                parts.append(history)
+        except Exception:
+            pass
 
-    @plugin.mount_prompt_inject_method(
-        name="game_system_expertise",
-        description="根据当前游戏系统注入专业知识和行为指导"
-    )
-    async def _inject_system_expertise_prompt(_ctx) -> str:
-        return await inject_system_expertise_prompt(_ctx, character_manager)
+        # 2. 当前游戏状态（角色卡、时间、状态、KP笔记）
+        try:
+            game_state = await inject_game_state_prompt(_ctx, character_manager, store)
+            if game_state:
+                parts.append(game_state)
+        except Exception:
+            pass
 
-    @plugin.mount_prompt_inject_method(
-        name="document_context_awareness",
-        description="基于已上传文档提供上下文相关的背景信息"
-    )
-    async def _inject_document_context_prompt(_ctx) -> str:
-        return await inject_document_context_prompt(_ctx, vector_db, store, config.ENABLE_VECTOR_DB)
+        # 3. 模组文档上下文（知识池/向量检索）
+        try:
+            doc_context = await inject_document_context_prompt(_ctx, vector_db, store, config.ENABLE_VECTOR_DB)
+            if doc_context:
+                parts.append(doc_context)
+        except Exception:
+            pass
 
-    @plugin.mount_prompt_inject_method(
-        name="trpg_interaction_style",
-        description="注入TRPG特有的交互风格和表达方式"
-    )
-    async def _inject_interaction_style_prompt(_ctx) -> str:
-        return await inject_interaction_style_prompt(_ctx)
-    
-    @plugin.mount_prompt_inject_method(
-        name="session_history_memory",
-        description="注入上次跑团的战报记忆，作为游戏历史上下文"
-    )
-    async def _inject_session_history_prompt(_ctx) -> str:
-        return await inject_session_history_prompt(_ctx, battle_report_manager)
+        # 4. 游戏系统专业知识
+        try:
+            expertise = await inject_system_expertise_prompt(_ctx, character_manager)
+            if expertise:
+                parts.append(expertise)
+        except Exception:
+            pass
+
+        # 5. TRPG 系统基础功能和工具意识
+        try:
+            system_prompt = await inject_trpg_system_prompt(_ctx)
+            if system_prompt:
+                parts.append(system_prompt)
+        except Exception:
+            pass
+
+        # 6. 交互风格指导
+        try:
+            style = await inject_interaction_style_prompt(_ctx)
+            if style:
+                parts.append(style)
+        except Exception:
+            pass
+
+        return "\n\n".join(parts)
