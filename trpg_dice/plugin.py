@@ -754,8 +754,6 @@ async def inspect_knowledge_pool(_ctx: AgentCtx, pool_type: str = "keeper") -> s
                         if isinstance(v, list):
                             if v:
                                 lines.append(f"  {k}: {v}")
-                        elif isinstance(v, str) and len(v) > 200:
-                            lines.append(f"  {k}: {v[:200]}...")
                         else:
                             lines.append(f"  {k}: {v}")
                 lines.append("")
@@ -763,6 +761,105 @@ async def inspect_knowledge_pool(_ctx: AgentCtx, pool_type: str = "keeper") -> s
         return "\n".join(lines)
     except Exception as e:
         return f"❌ 检查知识池失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "list_module_elements", "列出模组元素清单（KP-only，仅限AI观察）")
+async def list_module_elements(_ctx: AgentCtx, element_type: str = "scenes") -> str:
+    """
+    列出模组中所有场景/NPC/线索的名称清单，用于按需查看完整详情。
+
+    Args:
+        element_type: 元素类型 - scenes(场景)/npcs(NPC)/clues(线索)/truths(真相)/timeline(时间线)
+    """
+    chat_key = _ctx.chat_key
+    try:
+        catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
+        if not catalog_data:
+            return "❌ 当前没有模组数据，请先上传模组并初始化"
+
+        catalog = json.loads(catalog_data)
+        items = catalog.get(element_type, [])
+        if not items:
+            return f"📭 模组中没有 {element_type} 类型的数据"
+
+        lines = [f"📘 模组 {element_type} 清单（共 {len(items)} 条）：", ""]
+        for i, item in enumerate(items, 1):
+            name = item.get("name", item.get("title", f"条目{i}"))
+            brief = item.get("description", item.get("summary", ""))[:60]
+            lines.append(f"{i}. {name} - {brief}...")
+
+        lines.append("")
+        lines.append(f"💡 使用 get_module_element_detail('{element_type}', '名称') 查看完整详情")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"❌ 获取清单失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.AGENT, "get_module_element_detail", "获取模组元素完整详情（KP-only，仅限AI观察）")
+async def get_module_element_detail(_ctx: AgentCtx, element_type: str, name: str) -> str:
+    """
+    获取指定场景/NPC/线索的完整详细信息。
+    解决 inspect_knowledge_pool 内容过长被截断的问题。
+
+    Args:
+        element_type: 元素类型 - scenes/npcs/clues/truths/timeline
+        name: 元素名称（支持模糊匹配）
+    """
+    chat_key = _ctx.chat_key
+    try:
+        catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
+        if not catalog_data:
+            return "❌ 当前没有模组数据"
+
+        catalog = json.loads(catalog_data)
+        items = catalog.get(element_type, [])
+        if not items:
+            return f"❌ 模组中没有 {element_type} 类型的数据"
+
+        # 精确匹配或模糊匹配
+        target = None
+        name_lower = name.lower()
+        for item in items:
+            item_name = item.get("name", item.get("title", ""))
+            if item_name.lower() == name_lower:
+                target = item
+                break
+        if not target:
+            for item in items:
+                item_name = item.get("name", item.get("title", ""))
+                if name_lower in item_name.lower():
+                    target = item
+                    break
+
+        if not target:
+            return f'❌ 未找到 {element_type} 类型的 "{name}"'
+
+        lines = [
+            f"{'🔴' if element_type in ('truths',) else '🟡'} {element_type} 详情: {target.get('name', target.get('title', '?'))}",
+            "=" * 40,
+            "",
+        ]
+        for k, v in target.items():
+            if k in ("name", "title"):
+                continue
+            if isinstance(v, list):
+                if v:
+                    lines.append(f"【{k}】")
+                    for sub in v:
+                        if isinstance(sub, dict):
+                            sub_name = sub.get("name", sub.get("title", ""))
+                            lines.append(f"  - {sub_name}: {sub.get('description', sub.get('summary', ''))}")
+                        else:
+                            lines.append(f"  - {sub}")
+                    lines.append("")
+            elif isinstance(v, str) and v:
+                lines.append(f"【{k}】")
+                lines.append(v)
+                lines.append("")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"❌ 获取详情失败: {str(e)}"
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
