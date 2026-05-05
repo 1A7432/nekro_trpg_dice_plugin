@@ -250,35 +250,58 @@ async def inject_system_expertise_prompt(_ctx, character_manager) -> str:
 async def inject_document_context_prompt(_ctx, vector_db, enable_vector_db: bool = True) -> str:
     """
     文档上下文提示词注入
-    根据最近的对话内容智能提取相关文档信息
+    多维度检索已上传模组内容，确保 AI KP 能获取足够的剧情设定
     """
 
     if not enable_vector_db:
         return ""
 
     try:
-        # 使用通用查询检索相关文档
-        search_results = await vector_db.search_documents(
-            query="TRPG跑团规则模组剧情",
-            chat_key=_ctx.chat_key,
-            limit=3
-        )
+        # 多维度查询模组内容，覆盖剧情、NPC、线索等不同方面
+        queries = [
+            "模组剧情 设定 背景 世界观",
+            "NPC 角色 人物 关系 介绍",
+            "线索 事件 任务 目标 流程",
+        ]
 
-        if search_results:
+        seen_ids = set()
+        all_results = []
+
+        for query in queries:
+            results = await vector_db.search_documents(
+                query=query,
+                chat_key=_ctx.chat_key,
+                limit=5,
+            )
+            for r in results:
+                doc_id = f"{r['filename']}:{r.get('chunk_index', 0)}"
+                if doc_id not in seen_ids:
+                    seen_ids.add(doc_id)
+                    all_results.append(r)
+
+        if all_results:
             prompt_parts = [
-                "# 相关背景资料",
+                "# 【模组内容】你必须严格遵循以下已上传模组的内容推进剧情",
                 "",
-                "以下是从已上传文档中检索到的相关信息:"
+                "⚠️ 你是本模组的守秘人（KP），以下内容是官方模组设定。",
+                "⚠️ 你必须严格依据这些内容描述场景、NPC行为、剧情走向，不得自行编造与模组矛盾的情节。",
+                "⚠️ 当玩家行动涉及模组未覆盖的内容时，你可以合理扩展，但不得与已有设定冲突。",
+                "",
+                "以下是从已上传文档中检索到的相关信息:",
             ]
 
-            for i, result in enumerate(search_results, 1):
+            for i, result in enumerate(all_results[:10], 1):
                 doc_emoji = {
                     "module": "📘", "rule": "📜",
                     "story": "📖", "background": "🌍"
                 }.get(result["document_type"], "📄")
 
-                prompt_parts.append(f"## {doc_emoji} {result['filename']}")
-                prompt_parts.append(f"{result['text'][:300]}...")
+                prompt_parts.append(f"## {doc_emoji} {result['filename']} (片段{i})")
+                # 显示前 1500 字符，避免关键信息被截断
+                text = result["text"]
+                if len(text) > 1500:
+                    text = text[:1500] + "..."
+                prompt_parts.append(text)
                 prompt_parts.append("")
 
             prompt_parts.append("💡 你可以使用 search_documents 或 answer_document_question 工具查询更多文档内容")
