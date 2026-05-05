@@ -50,6 +50,8 @@ async def inject_trpg_system_prompt(_ctx) -> str:
         "### 状态与战斗",
         "• hp_manager(action, value=0) - HP管理 (action: show/add/sub/set)",
         "• initiative_tracker(action, name=None, initiative=None) - 先攻追踪 (add/list/clear/next)",
+        "• update_character_status(status_effects) - 更新角色状态效果：中毒/恐惧/受伤/疯狂等 JSON 数组（BEHAVIOR，每次对话自动注入）",
+        "• game_clock(action, value) - 游戏时间/日程管理：show/set/advance/add_event（BEHAVIOR，当前时间每次对话自动注入）",
         "",
         "### 文档与模组系统（KP内部工具，检索结果不可直接告知玩家）",
         "• upload_document(file_path, doc_type='module') - 上传文档（module/rule/story/background）",
@@ -99,6 +101,18 @@ async def inject_game_state_prompt(_ctx, character_manager, store) -> str:
         prompt_parts = ["# 当前游戏状态"]
         user_id = _get_user_id(_ctx)
 
+        # 注入游戏时间
+        try:
+            clock_data = await store.get(user_key="", store_key=f"game_clock.{_ctx.chat_key}")
+            if clock_data:
+                clock = json.loads(clock_data)
+                prompt_parts.extend([
+                    "",
+                    f"🕐 当前游戏时间: {clock.get('current_time', '未设定')}",
+                ])
+        except Exception:
+            pass
+
         # 获取当前活跃角色信息
         try:
             character = await character_manager.get_character(user_id, _ctx.chat_key)
@@ -130,8 +144,25 @@ async def inject_game_state_prompt(_ctx, character_manager, store) -> str:
                     if sec:
                         prompt_parts.append(f"• 状态: HP:{sec.get('生命值', '?')} AC:{sec.get('护甲等级', '?')}")
 
+                # 携带物品详情
                 if character.equipment:
-                    prompt_parts.append(f"• 装备: {', '.join(character.equipment)}")
+                    prompt_parts.append(f"• 携带物品 ({len(character.equipment)} 件): {', '.join(character.equipment)}")
+                else:
+                    prompt_parts.append("• 携带物品: 无")
+
+                # 角色状态效果（中毒、恐惧、受伤等）
+                try:
+                    status_data = await store.get(user_id=user_id, store_key=f"character_status.{_ctx.chat_key}")
+                    if status_data:
+                        effects = json.loads(status_data)
+                        if effects:
+                            prompt_parts.append(f"• ⚠️ 状态效果: {' | '.join(effects)}")
+                        else:
+                            prompt_parts.append("• 状态效果: 无")
+                    else:
+                        prompt_parts.append("• 状态效果: 无")
+                except Exception:
+                    pass
         except Exception:
             pass  # 忽略角色卡获取错误
 

@@ -1085,6 +1085,93 @@ async def kp_note(_ctx: AgentCtx, action: str, category: str, content: str = "")
         return f"❌ 笔记操作失败: {str(e)}"
 
 
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "game_clock", "游戏时间/日程管理")
+async def game_clock(_ctx: AgentCtx, action: str = "show", value: str = "") -> str:
+    """
+    管理游戏内时间。跑团时推进时间、记录日程、查看当前时间线。
+
+    Args:
+        action: show(查看当前时间)/set(设定时间)/advance(推进时间)/add_event(添加日程)/list_events(列出日程)
+        value: 根据 action。set 时传入 "1926年3月15日 14:00"；advance 时传入 "+2小时""+1天"；add_event 时传入事件描述
+    """
+    chat_key = _ctx.chat_key
+    store_key = f"game_clock.{chat_key}"
+    try:
+        clock_data = await store.get(user_key="", store_key=store_key)
+        clock = json.loads(clock_data) if clock_data else {"current_time": "未设定", "events": []}
+
+        if action == "show":
+            lines = [f"🕐 当前游戏时间: {clock.get('current_time', '未设定')}", ""]
+            events = clock.get("events", [])
+            if events:
+                lines.append("📅 已记录日程:")
+                for e in events[-10:]:
+                    lines.append(f"  • {e.get('time', '?')}: {e.get('description', '')}")
+            else:
+                lines.append("📅 暂无日程记录")
+            return "\n".join(lines)
+
+        elif action == "set":
+            clock["current_time"] = value
+            await store.set(user_key="", store_key=store_key, value=json.dumps(clock, ensure_ascii=False))
+            return f"✅ 游戏时间已设定为: {value}"
+
+        elif action == "advance":
+            current = clock.get("current_time", "未设定")
+            clock["current_time"] = f"{current} → 推进 {value}"
+            await store.set(user_key="", store_key=store_key, value=json.dumps(clock, ensure_ascii=False))
+            return f"✅ 游戏时间推进 {value}，当前: {clock['current_time']}"
+
+        elif action == "add_event":
+            event = {
+                "time": clock.get("current_time", "?"),
+                "description": value,
+            }
+            clock.setdefault("events", []).append(event)
+            await store.set(user_key="", store_key=store_key, value=json.dumps(clock, ensure_ascii=False))
+            return f"✅ 已记录日程: [{clock.get('current_time', '?')}] {value}"
+
+        elif action == "list_events":
+            events = clock.get("events", [])
+            if not events:
+                return "📭 暂无日程记录"
+            lines = ["📅 全部日程记录：", ""]
+            for e in events:
+                lines.append(f"• {e.get('time', '?')}: {e.get('description', '')}")
+            return "\n".join(lines)
+
+        else:
+            return f"❌ 不支持的 action: {action}"
+    except Exception as e:
+        return f"❌ 时间管理失败: {str(e)}"
+
+
+@plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "update_character_status", "更新角色状态效果")
+async def update_character_status(_ctx: AgentCtx, status_effects: str) -> str:
+    """
+    更新角色当前状态效果。跑团中的临时状态（中毒、恐惧、受伤、疯狂等）用此方法记录，
+    每次对话会自动注入到 AI 的上下文中。
+
+    Args:
+        status_effects: JSON 字符串列表，如 '["中毒(每回合1HP)", "恐惧(SAN-10)", "手臂受伤(无法持盾)"]'
+    """
+    user_id = _get_user_id(_ctx)
+    chat_key = _ctx.chat_key
+    try:
+        effects = json.loads(status_effects)
+        if not isinstance(effects, list):
+            return "❌ status_effects 必须是 JSON 数组"
+
+        await store.set(
+            user_id=user_id,
+            store_key=f"character_status.{chat_key}",
+            value=json.dumps(effects, ensure_ascii=False),
+        )
+        return f"✅ 角色状态已更新: {', '.join(effects)}"
+    except Exception as e:
+        return f"❌ 更新状态失败: {str(e)}"
+
+
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
 async def delete_character(_ctx: AgentCtx, name: str) -> str:
     """删除指定角色卡"""
