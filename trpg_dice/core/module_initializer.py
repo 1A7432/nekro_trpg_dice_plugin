@@ -117,10 +117,11 @@ class ModuleInitializer:
         prompt = f"""分析以下TRPG模组文本片段，输出 JSON：
 
 要求：
-- type: 类型（scene/npc/clue/rule/background/other）。场景描述→scene，人物介绍→npc，线索信息→clue，规则条文→rule，世界观→background
-- risk_level: 敏感度（keeper_only/player_visible/mixed）。包含守秘人提示/幕后真相/NPC秘密/未来线索→keeper_only；纯场景外观描述→player_visible；混合→mixed
+- type: 类型（scene/npc/clue/rule/background/other）。场景描述→scene，人物介绍→npc，线索信息→clue，规则条文→rule，世界观/历史→background，其他→other
+- title: 提取该片段的核心主题名称。场景→场景名（如"废弃医院大厅"）；NPC→人物名（如"凯尔·莫里斯"）；线索→线索标题（如"涂鸦墙上的信息"）；其他→用摘要前10字
+- risk_level: 敏感度（keeper_only/player_visible/mixed）。包含守秘人提示/幕后真相/NPC秘密/怪物数据/未来线索→keeper_only；纯场景外观/玩家可直接感知的→player_visible；混合→mixed
 - summary: 100字以内的内容摘要，只概括核心内容，不含剧透
-- keywords: 关键词列表（3-8个）
+- keywords: 关键词列表（3-8个，必须包含场景名/NPC名/关键物品名等可检索词）
 - spoiler_tags: 剧透标签列表（该片段中包含的不可透露给玩家的信息标签）
 - requires: 触发该片段内容的前置条件列表（如果有）
 - unlocks: 该片段可能解锁的后续内容列表（如果有）
@@ -168,29 +169,34 @@ class ModuleInitializer:
     def _fallback_analysis(self, text: str) -> Dict:
         """LLM 调用失败时的启发式回退分析"""
         risk = "mixed"
-        if any(k in text for k in ["守秘人", "KP", "幕后", "真相是", "秘密"]):
+        if any(k in text for k in ["守秘人", "KP", "幕后", "真相是", "秘密", "剧透", "不可描述"]):
             risk = "keeper_only"
-        elif any(k in text for k in ["场景", "房间", "地点", "外观", "描述", "看到", "听到"]):
+        elif any(k in text for k in ["场景", "房间", "地点", "外观", "描述", "看到", "听到", "闻到"]):
             risk = "player_visible"
 
         type_guess = "other"
-        if any(k in text for k in ["场景", "房间", "地点", "区域"]):
-            type_guess = "scene"
-        elif any(k in text for k in ["NPC", "人物", "名字", "角色", "他", "她"]):
+        text_lower = text.lower()
+        # 优先判断 NPC（人名通常在文本中明确出现）
+        if any(k in text for k in ["NPC", "人物介绍", "角色卡", "调查员", "守秘人信息"]):
             type_guess = "npc"
-        elif any(k in text for k in ["线索", "发现", "证据", "物品", "文件"]):
+        elif any(k in text for k in ["线索", "发现", "证据", "物品", "文件", "日记", "笔记", "密码"]):
             type_guess = "clue"
-        elif any(k in text for k in ["规则", "检定", "技能", "属性", "成功", "失败"]):
+        elif any(k in text for k in ["场景", "房间", "地点", "区域", "地图", "建筑", "内部", "外部"]):
+            type_guess = "scene"
+        elif any(k in text for k in ["规则", "检定", "技能", "属性", "成功", "失败", "掷骰", "惩罚骰", "奖励骰"]):
             type_guess = "rule"
-        elif any(k in text for k in ["背景", "世界观", "历史", "设定"]):
+        elif any(k in text for k in ["背景", "世界观", "历史", "设定", "年代", "时代"]):
             type_guess = "background"
 
         summary = text[:100] + "..." if len(text) > 100 else text
-        # 清理换行
         summary = summary.replace("\n", " ")
+
+        # 尝试从文本中提取标题：第一个句号前的内容，或前15字
+        title = summary[:20] + "..." if len(summary) > 20 else summary
 
         return {
             "type": type_guess,
+            "title": title,
             "risk_level": risk,
             "summary": summary,
             "keywords": [],
@@ -217,9 +223,17 @@ class ModuleInitializer:
         }
 
         for entry in catalog:
+            # title 优先用 LLM 提取的，否则从 summary 取前15字，绝不用文件名
+            title = entry.get("title", "")
+            if not title or title == entry.get("doc_name", ""):
+                summary = entry.get("summary", "")
+                title = summary[:18] + "..." if len(summary) > 18 else summary
+            if not title:
+                title = f"片段#{entry.get('chunk_index', 0)}"
+
             item = {
                 "id": entry["chunk_id"],
-                "title": entry["doc_name"],
+                "title": title,
                 "summary": entry["summary"],
                 "keywords": entry["keywords"],
             }
@@ -243,11 +257,18 @@ class ModuleInitializer:
                 player_pool["world_info"].append(item)
             elif entry["type"] == "background":
                 player_pool["world_info"].append(item)
+            else:
+                # other / unknown 类型：基于 risk_level 和 keywords 二次分配
+                if entry.get("risk_level") == "keeper_only":
+                    keeper_pool["scenes"].append({**item, "spoiler_tags": entry.get("spoiler_tags", [])})
+                else:
+                    player_pool["world_info"].append(item)
 
             # 有 spoiler_tags 的归入守秘人真相池
             if entry.get("spoiler_tags"):
                 keeper_pool["truths"].append({
                     "id": entry["chunk_id"],
+                    "title": title,
                     "tags": entry["spoiler_tags"],
                     "summary": entry["summary"],
                 })
