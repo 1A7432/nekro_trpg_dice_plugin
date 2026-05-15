@@ -11,6 +11,8 @@ import time
 from typing import List, Tuple
 from dataclasses import dataclass
 
+from ..i18n import _
+
 
 @dataclass
 class DiceConfig:
@@ -42,7 +44,7 @@ class DiceResult:
     def format_result(self, show_details: bool = True) -> str:
         """格式化骰子结果"""
         if not show_details:
-            return f"结果: {self.total}"
+            return _("结果: {total}").format(total=self.total)
 
         if len(self.rolls) == 1:
             roll_str = f"[{self.rolls[0]}]"
@@ -117,7 +119,7 @@ class DiceParser:
                     dice_part = dice_part[1:-1]  # 去掉括号
 
                 # 递归解析骰子部分
-                dice_count, dice_sides, modifier, _, keep_count = DiceParser.parse_expression(dice_part)
+                dice_count, dice_sides, modifier, _multiplier, keep_count = DiceParser.parse_expression(dice_part)
                 return dice_count, dice_sides, modifier, multiplier, keep_count
 
         # 处理保留最高的N个骰子，如 4d6k3
@@ -137,7 +139,7 @@ class DiceParser:
                     modifier = int(match.group(3)) if match.group(3) else 0
 
                     if keep_count > dice_count:
-                        raise ValueError(f"保留数量({keep_count})不能超过骰子数量({dice_count})")
+                        raise ValueError(_("保留数量({keep_count})不能超过骰子数量({dice_count})").format(keep_count=keep_count, dice_count=dice_count))
 
                     return dice_count, dice_sides, modifier, 1, keep_count
 
@@ -161,7 +163,7 @@ class DiceParser:
             if num <= config.MAX_DICE_SIDES:
                 return 1, num, 0, 1, 0
 
-        raise ValueError(f"无法解析的骰子表达式: {expression}")
+        raise ValueError(_("无法解析的骰子表达式: {expression}").format(expression=expression))
 
     @staticmethod
     def parse_multiple_dice(expression: str) -> List[Tuple[int, int, int, int, int, int]]:
@@ -193,7 +195,7 @@ class DiceParser:
             parts.append(current)
 
         if not parts:
-            raise ValueError("空的骰子表达式")
+            raise ValueError(_("空的骰子表达式"))
 
         # 处理开头没有符号的情况
         if not parts[0].startswith('+') and not parts[0].startswith('-'):
@@ -227,10 +229,10 @@ class DiceRoller:
             return []
 
         if dice_count > config.MAX_DICE_COUNT:
-            raise ValueError(f"骰子数量不能超过{config.MAX_DICE_COUNT}个")
+            raise ValueError(_("骰子数量不能超过{max_count}个").format(max_count=config.MAX_DICE_COUNT))
 
         if dice_sides > config.MAX_DICE_SIDES:
-            raise ValueError(f"骰子面数不能超过{config.MAX_DICE_SIDES}")
+            raise ValueError(_("骰子面数不能超过{max_sides}").format(max_sides=config.MAX_DICE_SIDES))
 
         rolls = [random.randint(1, dice_sides) for _ in range(dice_count)]
 
@@ -247,7 +249,7 @@ class DiceRoller:
         try:
             dice_parts = DiceParser.parse_multiple_dice(expression)
         except ValueError as e:
-            raise ValueError(f"表达式解析失败: {e}")
+            raise ValueError(_("表达式解析失败: {error}").format(error=e))
 
         all_rolls = []
         total_modifier = 0
@@ -316,19 +318,19 @@ class DiceRoller:
 
         # 判定成功等级
         if roll == 1:
-            level = "大成功"
+            level = _("大成功")
         elif roll == 100 or (roll >= 96 and skill_value < 50):
-            level = "大失败"
+            level = _("大失败")
         elif roll <= skill_value // 5:
-            level = "极难成功"
+            level = _("极难成功")
         elif roll <= skill_value // 2:
-            level = "困难成功"
+            level = _("困难成功")
         elif roll <= skill_value:
-            level = "成功"
+            level = _("成功")
         else:
-            level = "失败"
+            level = _("失败")
 
-        success = level not in ["失败", "大失败"]
+        success = level not in [_("失败"), _("大失败")]
 
         return {
             "roll": roll,
@@ -379,19 +381,19 @@ class DiceRoller:
 
         # 判定成功等级
         if final_roll == 1:
-            level = "大成功"
+            level = _("大成功")
         elif final_roll == 100 or (final_roll >= 96 and skill_value < 50):
-            level = "大失败"
+            level = _("大失败")
         elif final_roll <= skill_value // 5:
-            level = "极难成功"
+            level = _("极难成功")
         elif final_roll <= skill_value // 2:
-            level = "困难成功"
+            level = _("困难成功")
         elif final_roll <= skill_value:
-            level = "成功"
+            level = _("成功")
         else:
-            level = "失败"
+            level = _("失败")
 
-        success = level not in ["失败", "大失败"]
+        success = level not in [_("失败"), _("大失败")]
 
         return {
             "roll": roll,
@@ -446,7 +448,7 @@ class DiceRoller:
         try:
             dice_parts = DiceParser.parse_multiple_dice(expression)
         except ValueError as e:
-            raise ValueError(f"表达式解析失败: {e}")
+            raise ValueError(_("表达式解析失败: {error}").format(error=e))
 
         all_rolls = []
         total_modifier = 0
@@ -487,7 +489,7 @@ class DiceRoller:
             main_dice_sides = 0
 
         return DiceResult(
-            expression=f"{expression}(爆炸)",
+            expression=f"{expression}({_('爆炸')})",
             rolls=all_rolls,
             modifier=total_modifier,
             dice_count=main_dice_count,
@@ -529,9 +531,9 @@ class DiceRoller:
     def roll_repeat(expression: str, times: int) -> List[DiceResult]:
         """多次投掷同一表达式"""
         if times <= 0 or times > 20:
-            raise ValueError("重复次数必须在1-20之间")
+            raise ValueError(_("重复次数必须在1-20之间"))
 
         results = []
-        for _ in range(times):
+        for _i in range(times):
             results.append(DiceRoller.roll_expression(expression))
         return results

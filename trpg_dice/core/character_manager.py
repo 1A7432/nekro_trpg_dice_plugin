@@ -12,6 +12,8 @@ import hashlib
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
+from ..i18n import _
+
 # 获取模板目录路径
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
 
@@ -19,7 +21,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 class CharacterSheet:
     """完整的角色卡片类"""
 
-    def __init__(self, name: str = "未命名角色", system: str = "CoC"):
+    def __init__(self, name: str = _("未命名角色"), system: str = "CoC"):
         self.name = name
         self.system = system  # CoC, DnD5e, WoD 等
 
@@ -269,7 +271,7 @@ class CharacterTemplate:
             except Exception:
                 pass  # 加载失败则使用硬编码
 
-        template = cls("COC7标准", "CoC")
+        template = cls(_("COC7标准"), "CoC")
         template.main_dice = "1d100"
 
         # 基础属性生成规则
@@ -372,7 +374,7 @@ class CharacterTemplate:
             except Exception:
                 pass  # 加载失败则使用硬编码
 
-        template = cls("DND5E标准", "DnD5e")
+        template = cls(_("DND5E标准"), "DnD5e")
         template.main_dice = "1d20"
 
         # 六大基础属性 - 使用4d6k3生成
@@ -692,10 +694,10 @@ class CharacterManager:
         await self.store.set(user_key=user_id, store_key=store_key, value=str(luck_value))
         return luck_value
 
-    def generate_character(self, template_name: str, char_name: str = "新角色") -> CharacterSheet:
+    def generate_character(self, template_name: str, char_name: str = _("新角色")) -> CharacterSheet:
         """使用模板生成角色"""
         if template_name not in self.templates:
-            raise ValueError(f"未知的模板: {template_name}")
+            raise ValueError(_("未知的模板: {template_name}").format(template_name=template_name))
 
         template = self.templates[template_name]
         character = CharacterSheet(name=char_name, system=template.system)

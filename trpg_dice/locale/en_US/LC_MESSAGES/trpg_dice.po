@@ -1,0 +1,889 @@
+# TRPG Dice Plugin - English (US) Translations
+# Copyright (C) 2025 Dirac
+# This file is distributed under the MIT license.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: nekro-trpg-dice-plugin 2.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-15 00:00+0800\n"
+"PO-Revision-Date: 2025-05-15 00:00+0800\n"
+"Last-Translator: Dirac\n"
+"Language: en_US\n"
+"Language-Team: English (US)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+
+
+msgid "   大失败: {count} 次"
+msgstr "   Critical Failures: {count}"
+
+msgid "   大成功: {count} 次"
+msgstr "   Critical Successes: {count}"
+
+msgid "   总分: {score}/100 - {rating}"
+msgstr "   Total Score: {score}/100 - {rating}"
+
+msgid "   技能检定: {success}/{total} 成功"
+msgstr "   Skill Checks: {success}/{total} Success"
+
+msgid "   投骰次数: {count}"
+msgstr "   Dice Rolls: {count}"
+
+msgid "   行动次数: {count}"
+msgstr "   Actions: {count}"
+
+msgid " (+{bonus}奖励骰)"
+msgstr " (+{bonus} bonus die)"
+
+msgid " (-{penalty}惩罚骰)"
+msgstr " (-{penalty} penalty die)"
+
+msgid " (d20:{roll} {sign}{mod})"
+msgstr " (d20:{roll} {sign}{mod})"
+
+msgid " (优势)"
+msgstr " (Advantage)"
+
+msgid " (劣势)"
+msgstr " (Disadvantage)"
+
+msgid " ✨ 大成功!"
+msgstr " ✨ Critical Success!"
+
+msgid " 💥 大失败!"
+msgstr " 💥 Critical Failure!"
+
+msgid "# 📊 TRPG 跑团战报"
+msgstr "# 📊 TRPG Session Report"
+
+msgid "## ✨ 精彩时刻"
+msgstr "## ✨ Highlight Moments"
+
+msgid "## 🎮 会话信息"
+msgstr "## 🎮 Session Info"
+
+msgid "## 👥 玩家评分"
+msgstr "## 👥 Player Ratings"
+
+msgid "## 📈 游戏统计"
+msgstr "## 📈 Game Statistics"
+
+msgid "## 🔑 关键事件回顾"
+msgstr "## 🔑 Key Event Recap"
+
+msgid "### 🎭 {name}"
+msgstr "### 🎭 {name}"
+
+msgid "(熟练)"
+msgstr "(Proficient)"
+
+msgid "**[{time}]** 🎲 {name} 投出 `{expr}` = **{result}** (大成功!)"
+msgstr "**[{time}]** 🎲 {name} rolled `{expr}` = **{result}** (Critical Success!)"
+
+msgid "**会话名称**: {name}"
+msgstr "**Session Name**: {name}"
+
+msgid "**开始时间**: {time}"
+msgstr "**Start Time**: {time}"
+
+msgid "**总分**: {score}/100 - {rating}"
+msgstr "**Total Score**: {score}/100 - {rating}"
+
+msgid "**游戏时长**: {minutes} 分钟"
+msgstr "**Duration**: {minutes} min"
+
+msgid "**结束时间**: {time}"
+msgstr "**End Time**: {time}"
+
+msgid "*感谢各位玩家的参与！期待下次冒险！*"
+msgstr "*Thank you all for participating! See you on the next adventure!*"
+
+msgid "COC7标准"
+msgstr "COC7 Standard"
+
+msgid "DND5E标准"
+msgstr "DND5E Standard"
+
+msgid "\\\\n🎯 掷出: {roll} (目标值: {target})\\\\n"
+msgstr "\\\\n🎯 掷出: {roll} (目标值: {target})\\\\n"
+
+msgid "\\\\n🎲 掷出: {final} (原始{original})\\\\n"
+msgstr "\\\\n🎲 掷出: {final} (原始{original})\\\\n"
+
+msgid "\\n🎯 掷出: {roll} (目标值: {target})\\n"
+msgstr "\\n🎯 掷出: {roll} (目标值: {target})\\n"
+
+msgid "\\n🎲 掷出: {final} (原始{original})\\n"
+msgstr "\\n🎲 掷出: {final} (原始{original})\\n"
+
+msgid "{emoji} {name} 理智检定\\\\n"
+msgstr "{emoji} {name} 理智检定\\\\n"
+
+msgid "{emoji} {name} 理智检定\\n"
+msgstr "{emoji} {name} 理智检定\\n"
+
+msgid "{emoji} 结果: {level}"
+msgstr "{emoji} Result: {level}"
+
+msgid "{emoji} 结果: {result}"
+msgstr "{emoji} Result: {result}"
+
+msgid "| ⚔️ 战斗轮次 | {count} |"
+msgstr "| ⚔️ Combat Rounds | {count} |"
+
+msgid "| 大失败次数 | {count} |"
+msgstr "| Critical Failures | {count} |"
+
+msgid "| 大成功次数 | {count} |"
+msgstr "| Critical Successes | {count} |"
+
+msgid "| 技能检定成功率 | {success}/{total} |"
+msgstr "| Skill Checks | {success}/{total} |"
+
+msgid "| 投骰次数 | {count} |"
+msgstr "| Dice Rolls | {count} |"
+
+msgid "| 统计项 | 数值 |"
+msgstr "| Stat | Value |"
+
+msgid "| 行动次数 | {count} |"
+msgstr "| Actions | {count} |"
+
+msgid "| 项目 | 次数 |"
+msgstr "| Item | Count |"
+
+msgid "| 🎯 技能检定次数 | {count} |"
+msgstr "| 🎯 Skill Check Count | {count} |"
+
+msgid "| 🎲 总投骰次数 | {count} |"
+msgstr "| 🎲 Total Dice Rolls | {count} |"
+
+msgid "| 📝 关键事件 | {count} |"
+msgstr "| 📝 Key Events | {count} |"
+
+msgid "⏰ 开始时间: {time}"
+msgstr "⏰ Start Time: {time}"
+
+msgid "⏰ 结束时间: {time}"
+msgstr "⏰ End Time: {time}"
+
+msgid "⏱️ 游戏时长: {minutes} 分钟"
+msgstr "⏱️ Duration: {minutes} min"
+
+msgid "⏳ 模组初始化正在进行中，请稍候..."
+msgstr "⏳ Module initialization is in progress, please wait..."
+
+msgid "⏳ 模组知识池正在后台初始化中..."
+msgstr "⏳ Module knowledge pool is being initialized in background..."
+
+msgid "⚔️ {name} 先攻: {init}{adv}"
+msgstr "⚔️ {name} Initiative: {init}{adv}"
+
+msgid "⚔️ 先攻顺序:\\\\n"
+msgstr "⚔️ 先攻顺序:\\\\n"
+
+msgid "⚔️ 先攻顺序:\\n"
+msgstr "⚔️ 先攻顺序:\\n"
+
+msgid "⚔️ 对抗检定: {skill1} vs {skill2}\\\\n"
+msgstr "⚔️ 对抗检定: {skill1} vs {skill2}\\\\n"
+
+msgid "⚔️ 对抗检定: {skill1} vs {skill2}\\n"
+msgstr "⚔️ 对抗检定: {skill1} vs {skill2}\\n"
+
+msgid "⚔️ 战斗轮次: {count}"
+msgstr "⚔️ Combat Rounds: {count}"
+
+msgid "✅ CoC7角色 \"{name}\" 生成成功!\\n"
+msgstr "✅ CoC7角色 \"{name}\" 生成成功!\\n"
+
+msgid "✅ CoC7角色 \\ 生成成功!\\\\n"
+msgstr "✅ CoC7角色 \\ 生成成功!\\\\n"
+
+msgid "✅ CoC7角色 \\\\ 生成成功!\\\\n"
+msgstr "✅ CoC7角色 \\\\ 生成成功!\\\\n"
+
+msgid "✅ DND5E角色 \"{name}\" 生成成功!\\n"
+msgstr "✅ DND5E角色 \"{name}\" 生成成功!\\n"
+
+msgid "✅ DND5E角色 \\ 生成成功!\\\\n"
+msgstr "✅ DND5E角色 \\ 生成成功!\\\\n"
+
+msgid "✅ DND5E角色 \\\\ 生成成功!\\\\n"
+msgstr "✅ DND5E角色 \\\\ 生成成功!\\\\n"
+
+msgid "✅ {name} 先攻: {init}{adv}"
+msgstr "✅ {name} Initiative: {init}{adv}"
+
+msgid "✅ 先攻列表已清空"
+msgstr "✅ Initiative list cleared"
+
+msgid "✅ 已切换到 {template} 模板"
+msgstr "✅ Switched to {template} template"
+
+msgid "✅ 已切换到: {name}"
+msgstr "✅ Switched to: {name}"
+
+msgid "✅ 已切换到角色卡: {name} ({system})"
+msgstr "✅ Switched to character sheet: {name} ({system})"
+
+msgid "✅ 已创建角色: {name}"
+msgstr "✅ Created character: {name}"
+
+msgid "✅ 已删除属性: {name}"
+msgstr "✅ Deleted attribute: {name}"
+
+msgid "✅ 已删除技能: {name}"
+msgstr "✅ Deleted skill: {name}"
+
+msgid "✅ 已启动模组知识池初始化（{count} 个分片），后台处理中..."
+msgstr "✅ Module knowledge pool initialization started ({count} chunks), processing in background..."
+
+msgid "✅ 已更新 {name} 的 {attr}: {old} → {new}"
+msgstr "✅ Updated {name}'s {attr}: {old} → {new}"
+
+msgid "✅ 已更新 {name} 的 {skill}: {old} → {new}"
+msgstr "✅ Updated {name}'s {skill}: {old} → {new}"
+
+msgid "✅ 已自动生成角色属性: {name}"
+msgstr "✅ Auto-generated character attributes: {name}"
+
+msgid "✅ 已记录关键事件: {desc}"
+msgstr "✅ Recorded key event: {desc}"
+
+msgid "✅ 已设置 {attr} = {val}"
+msgstr "✅ Set {attr} = {val}"
+
+msgid "✅ 模组知识池初始化完成（{count} 个分片已分析）"
+msgstr "✅ Module knowledge pool initialization complete ({count} chunks analyzed)."
+
+msgid "✅ 知识池已增量更新"
+msgstr "✅ Knowledge pool updated incrementally."
+
+msgid "✅ 角色卡 \"{name}\" 创建成功！\\n"
+msgstr "✅ 角色卡 \"{name}\" 创建成功！\\n"
+
+msgid "✅ 角色卡 \"{name}\" 已删除"
+msgstr "✅ 角色卡 \"{name}\" 已删除"
+
+msgid "✅ 角色卡 \\ 创建成功！\\\\n"
+msgstr "✅ 角色卡 \\ 创建成功！\\\\n"
+
+msgid "✅ 角色卡 \\ 已删除"
+msgstr "✅ 角色卡 \\ 已删除"
+
+msgid "✅ 角色卡 \\\\ 创建成功！\\\\n"
+msgstr "✅ 角色卡 \\\\ 创建成功！\\\\n"
+
+msgid "✅ 角色卡 \\\\ 已删除"
+msgstr "✅ 角色卡 \\\\ 已删除"
+
+msgid "✅ 角色卡 \\\\\\\\ 已删除"
+msgstr "✅ Character sheet \\\\"
+
+msgid "✅ 角色卡已清空"
+msgstr "✅ Character sheet cleared"
+
+msgid "✅ 角色状态已更新: {effects}"
+msgstr "✅ Character status updated: {effects}"
+
+msgid "✨ MP:{mp}/{mpmax}\\\\n"
+msgstr "✨ MP:{mp}/{mpmax}\\\\n"
+
+msgid "✨ MP:{mp}/{mpmax}\\n"
+msgstr "✨ MP:{mp}/{mpmax}\\n"
+
+msgid "✨ {count}成功"
+msgstr "✨ {count} Success"
+
+msgid "✨ {skill}: {old} → {new} (+{delta})"
+msgstr "✨ {skill}: {old} → {new} (+{delta})"
+
+msgid "✨ 精彩时刻"
+msgstr "✨ Highlight Moments"
+
+msgid "✨ 结果: {level}"
+msgstr "✨ Result: {level}"
+
+msgid "❌ pool_type 必须是 'keeper' 或 'player'"
+msgstr "❌ pool_type must be 'keeper' or 'player'."
+
+msgid "❌ 不支持的 action: {action}"
+msgstr "❌ Unsupported action: {action}"
+
+msgid "❌ 不支持的元素类型: {element_type}"
+msgstr "❌ Unsupported element type: {element_type}"
+
+msgid "❌ 删除失败: {error}"
+msgstr "❌ Deletion failed: {error}"
+
+msgid "❌ 删除角色卡 \"{name}\" 失败"
+msgstr "❌ 删除角色卡 \"{name}\" 失败"
+
+msgid "❌ 删除角色卡 \\ 失败"
+msgstr "❌ 删除角色卡 \\ 失败"
+
+msgid "❌ 删除角色卡 \\\\ 失败"
+msgstr "❌ 删除角色卡 \\\\ 失败"
+
+msgid "❌ 删除角色卡 \\\\\\\\ 失败"
+msgstr "❌ Failed to delete character sheet \\\\"
+
+msgid "❌ 失败"
+msgstr "❌ Failure"
+
+msgid "❌ 当前没有上传的模组文档，请先上传 module/story 类型文档"
+msgstr "❌ No module document uploaded. Please upload a module/story document first."
+
+msgid "❌ 当前没有模组目录，请先上传模组（module/story 类型）"
+msgstr "❌ No module catalog found. Please upload a module/story document first."
+
+msgid "❌ 当前没有角色卡，请先使用 create_character 创建角色"
+msgstr "❌ No character sheet found. Please use create_character first."
+
+msgid "❌ 支持的模板: coc7, dnd5e"
+msgstr "❌ Supported templates: coc7, dnd5e"
+
+msgid "❌ 文档功能未启用"
+msgstr "❌ Document feature disabled"
+
+msgid "❌ 文档类型必须是: module/rule/story/background"
+msgstr "❌ Document type must be: module/rule/story/background"
+
+msgid "❌ 更新状态失败: {error}"
+msgstr "❌ Failed to update status: {error}"
+
+msgid "❌ 未找到: {name}"
+msgstr "❌ Not found: {name}"
+
+msgid "❌ 未找到角色卡 \"{name}\""
+msgstr "❌ 未找到角色卡 \"{name}\""
+
+msgid "❌ 未找到角色卡 \\"
+msgstr "❌ 未找到角色卡 \\"
+
+msgid "❌ 未找到角色卡 \\\\"
+msgstr "❌ 未找到角色卡 \\\\"
+
+msgid "❌ 未找到角色卡 \\\\\\\\"
+msgstr "❌ Character sheet \\\\"
+
+msgid "❌ 未找到角色卡: {name}"
+msgstr "❌ Character sheet not found: {name}"
+
+msgid "❌ 格式错误，用法: rav <技能1> vs <技能2>"
+msgstr "❌ Format error, usage: rav <skill1> vs <skill2>"
+
+msgid "❌ 没有守秘人知识池"
+msgstr "❌ No Keeper knowledge pool found."
+
+msgid "❌ 没有正在进行的跑团会话"
+msgstr "❌ No active session"
+
+msgid "❤️ HP:{HP}/{HPMAX} 🧠 SAN:{SAN}/{SANMAX} ✨ MP:{MP}/{MPMAX}"
+msgstr "❤️ HP:{HP}/{HPMAX} 🧠 SAN:{SAN}/{SANMAX} ✨ MP:{MP}/{MPMAX}"
+
+msgid "❤️ HP:{hp}/{hpmax} "
+msgstr "❤️ HP:{hp}/{hpmax} "
+
+msgid "❤️ {name} HP: {hp}/{hp_max}"
+msgstr "❤️ {name} HP: {hp}/{hp_max}"
+
+msgid "➡️ 当前回合: {name}"
+msgstr "➡️ Current Turn: {name}"
+
+msgid "⭐ 需要努力"
+msgstr "⭐ Needs Improvement"
+
+msgid "⭐⭐ 合格表现"
+msgstr "⭐⭐ Passing Performance"
+
+msgid "⭐⭐⭐ 良好表现"
+msgstr "⭐⭐⭐ Good Performance"
+
+msgid "⭐⭐⭐⭐ 优秀表现"
+msgstr "⭐⭐⭐⭐ Excellent Performance"
+
+msgid "⭐⭐⭐⭐⭐ 传奇表现"
+msgstr "⭐⭐⭐⭐⭐ Legendary Performance"
+
+msgid "保留数量({keep_count})不能超过骰子数量({dice_count})"
+msgstr "Keep count ({keep_count}) cannot exceed dice count ({dice_count})"
+
+msgid "困难成功"
+msgstr "Hard Success"
+
+msgid "大失败"
+msgstr "Critical Failure"
+
+msgid "大成功"
+msgstr "Critical Success"
+
+msgid "失败"
+msgstr "Failure"
+
+msgid "平民"
+msgstr "Commoner"
+
+msgid "感谢各位玩家的参与！期待下次冒险！"
+msgstr "Thank you all for participating! See you on the next adventure!"
+
+msgid "成功"
+msgstr "Success"
+
+msgid "新角色"
+msgstr "New Character"
+
+msgid "无法解析的骰子表达式: {expression}"
+msgstr "Unable to parse dice expression: {expression}"
+
+msgid "未参与"
+msgstr "Did not participate"
+
+msgid "未命名角色"
+msgstr "Unnamed Character"
+
+msgid "未知"
+msgstr "Unknown"
+
+msgid "未知的模板: {template_name}"
+msgstr "Unknown template: {template_name}"
+
+msgid "未知角色"
+msgstr "Unknown Character"
+
+msgid "未设定"
+msgstr "Not set"
+
+msgid "极难成功"
+msgstr "Extreme Success"
+
+msgid "次数必须在1-20之间"
+msgstr "Count must be between 1-20"
+
+msgid "欧洲人"
+msgstr "European"
+
+msgid "爆炸"
+msgstr "Exploding"
+
+msgid "用法: check <属性/技能> [DC] [熟练]\\\\n例如: check 察觉 / check 力量 15 熟练"
+msgstr "用法: check <属性/技能> [DC] [熟练]\\\\n例如: check 察觉 / check 力量 15 熟练"
+
+msgid "用法: check <属性/技能> [DC] [熟练]\\n例如: check 察觉 / check 力量 15 熟练"
+msgstr "用法: check <属性/技能> [DC] [熟练]\\n例如: check 察觉 / check 力量 15 熟练"
+
+msgid "用法: coc <技能值> [困难/极难]\\\\n例如: coc 65 / coc 75 困难"
+msgstr "用法: coc <技能值> [困难/极难]\\\\n例如: coc 65 / coc 75 困难"
+
+msgid "用法: coc <技能值> [困难/极难]\\n例如: coc 65 / coc 75 困难"
+msgstr "用法: coc <技能值> [困难/极难]\\n例如: coc 65 / coc 75 困难"
+
+msgid "用法: doc_text <类型> <文档名> <内容>\\\\n类型: module/rule/story/background"
+msgstr "用法: doc_text <类型> <文档名> <内容>\\\\n类型: module/rule/story/background"
+
+msgid "用法: doc_text <类型> <文档名> <内容>\\n类型: module/rule/story/background"
+msgstr "用法: doc_text <类型> <文档名> <内容>\\n类型: module/rule/story/background"
+
+msgid "用法: en <技能名>"
+msgstr "Usage: en <skill name>"
+
+msgid "用法: explode <表达式> (如 explode d10)"
+msgstr "Usage: explode <expression> (e.g., explode d10)"
+
+msgid "用法: rav <技能1> vs <技能2>\\\\n或: rav <技能1> <数值1> vs <技能2> <数值2>"
+msgstr "用法: rav <技能1> vs <技能2>\\\\n或: rav <技能1> <数值1> vs <技能2> <数值2>"
+
+msgid "用法: rav <技能1> vs <技能2>\\n或: rav <技能1> <数值1> vs <技能2> <数值2>"
+msgstr "用法: rav <技能1> vs <技能2>\\n或: rav <技能1> <数值1> vs <技能2> <数值2>"
+
+msgid "用法: repeat <次数> <表达式>"
+msgstr "Usage: repeat <count> <expression>"
+
+msgid "用法: repeat <次数> <表达式> (如 repeat 3 d6)"
+msgstr "Usage: repeat <count> <expression> (e.g., repeat 3 d6)"
+
+msgid "用法: save <属性> [DC] [熟练]\\\\n例如: save 体质 / save 智力 15 熟练"
+msgstr "用法: save <属性> [DC] [熟练]\\\\n例如: save 体质 / save 智力 15 熟练"
+
+msgid "用法: save <属性> [DC] [熟练]\\n例如: save 体质 / save 智力 15 熟练"
+msgstr "用法: save <属性> [DC] [熟练]\\n例如: save 体质 / save 智力 15 熟练"
+
+msgid "用法: sc <成功损失>/<失败损失>"
+msgstr "Usage: sc <success loss>/<failure loss>"
+
+msgid "用法: sc <成功损失>/<失败损失> [当前SAN]"
+msgstr "Usage: sc <success loss>/<failure loss> [current SAN]"
+
+msgid "用法: st [show/new <名称>/set <名称>/list/clr/del <属性>/temp <模板>/init/<属性> <值>]"
+msgstr "Usage: st [show/new <name>/set <name>/list/clr/del <attr>/temp <template>/init/<attr> <value>]"
+
+msgid "用法: wod <骰池大小> [困难度]"
+msgstr "Usage: wod <pool size> [difficulty]"
+
+msgid "空的骰子表达式"
+msgstr "Empty dice expression"
+
+msgid "结果: {total}"
+msgstr "Result: {total}"
+
+msgid "表达式解析失败: {error}"
+msgstr "Expression parsing failed: {error}"
+
+msgid "角色名称不能为空或只包含特殊字符"
+msgstr "Character name cannot be empty or contain only special characters"
+
+msgid "请指定角色名称"
+msgstr "Please specify a character name"
+
+msgid "请描述你的角色动作，如: me 仔细观察房间"
+msgstr "Please describe your character action, e.g., me carefully observe the room"
+
+msgid "请输入事件描述，如: session event 发现了神秘的地下入口"
+msgstr "Please enter event description, e.g., session event discovered a mysterious underground entrance"
+
+msgid "请输入你的问题"
+msgstr "Please enter your question"
+
+msgid "请输入技能名称，如: ra 侦察"
+msgstr "Please enter a skill name, e.g., ra Spot Hidden"
+
+msgid "请输入技能名称，如: rah 侦察"
+msgstr "Please enter a skill name, e.g., rah Spot Hidden"
+
+msgid "请输入搜索关键词"
+msgstr "Please enter search keywords"
+
+msgid "请输入骰子表达式，如: r 3d6+2"
+msgstr "Please enter a dice expression, e.g., r 3d6+2"
+
+msgid "请输入骰子表达式，如: rh 3d6+2"
+msgstr "Please enter a dice expression, e.g., rh 3d6+2"
+
+msgid "超级欧皇"
+msgstr "Super Lucky"
+
+msgid "跑团-{time}"
+msgstr "Session-{time}"
+
+msgid "重复次数必须在1-20之间"
+msgstr "Repeat count must be between 1 and 20"
+
+msgid "非洲人"
+msgstr "African"
+
+msgid "骰子数量不能超过{max_count}个"
+msgstr "Dice count cannot exceed {max_count}"
+
+msgid "骰子面数不能超过{max_sides}"
+msgstr "Dice sides cannot exceed {max_sides}"
+
+msgid "🃏 抽卡结果 ({count}张):\\\\n"
+msgstr "🃏 抽卡结果 ({count}张):\\\\n"
+
+msgid "🃏 抽卡结果 ({count}张):\\n"
+msgstr "🃏 抽卡结果 ({count}张):\\n"
+
+msgid "🌀 不定疯狂症状:\\\\n{symptom}"
+msgstr "🌀 不定疯狂症状:\\\\n{symptom}"
+
+msgid "🌀 不定疯狂症状:\\n{symptom}"
+msgstr "🌀 不定疯狂症状:\\n{symptom}"
+
+msgid "🌀 临时疯狂症状:\\\\n{symptom}"
+msgstr "🌀 临时疯狂症状:\\\\n{symptom}"
+
+msgid "🌀 临时疯狂症状:\\n{symptom}"
+msgstr "🌀 临时疯狂症状:\\n{symptom}"
+
+msgid "🌀 总结疯狂症状:\\\\n{symptom}"
+msgstr "🌀 总结疯狂症状:\\\\n{symptom}"
+
+msgid "🌀 总结疯狂症状:\\n{symptom}"
+msgstr "🌀 总结疯狂症状:\\n{symptom}"
+
+msgid "🍀 今日人品值: {value} ({level})"
+msgstr "🍀 Daily Luck: {value} ({level})"
+
+msgid "🎭 {name}"
+msgstr "🎭 {name}"
+
+msgid "🎭 {name} {action}"
+msgstr "🎭 {name} {action}"
+
+msgid "🎭 {name} 进行 {skill} 检定\\\\n"
+msgstr "🎭 {name} 进行 {skill} 检定\\\\n"
+
+msgid "🎭 {name} 进行 {skill} 检定\\n"
+msgstr "🎭 {name} 进行 {skill} 检定\\n"
+
+msgid "🎮 会话名称: {name}"
+msgstr "🎮 Session Name: {name}"
+
+msgid "🎮 系统: COC7\\\\n"
+msgstr "🎮 系统: COC7\\\\n"
+
+msgid "🎮 系统: COC7\\n"
+msgstr "🎮 系统: COC7\\n"
+
+msgid "🎮 系统: DND5E\\\\n"
+msgstr "🎮 系统: DND5E\\\\n"
+
+msgid "🎮 系统: DND5E\\n"
+msgstr "🎮 系统: DND5E\\n"
+
+msgid "🎮 系统: {system}\\\\n"
+msgstr "🎮 系统: {system}\\\\n"
+
+msgid "🎮 系统: {system}\\n"
+msgstr "🎮 系统: {system}\\n"
+
+msgid "🎯 主动方: {skill1}={val1} 掷出{roll1} → {name1}\\\\n"
+msgstr "🎯 主动方: {skill1}={val1} 掷出{roll1} → {name1}\\\\n"
+
+msgid "🎯 主动方: {skill1}={val1} 掷出{roll1} → {name1}\\n"
+msgstr "🎯 主动方: {skill1}={val1} 掷出{roll1} → {name1}\\n"
+
+msgid "🎯 当前SAN: {san} 掷出: {roll}\\\\n"
+msgstr "🎯 当前SAN: {san} 掷出: {roll}\\\\n"
+
+msgid "🎯 当前SAN: {san} 掷出: {roll}\\n"
+msgstr "🎯 当前SAN: {san} 掷出: {roll}\\n"
+
+msgid "🎯 技能检定次数: {count}"
+msgstr "🎯 Skill Check Count: {count}"
+
+msgid "🎯 掷出: {roll} + 加值{modifier} = {total} vs DC {dc}\\\\n"
+msgstr "🎯 掷出: {roll} + 加值{modifier} = {total} vs DC {dc}\\\\n"
+
+msgid "🎯 掷出: {roll} + 加值{modifier} = {total} vs DC {dc}\\n"
+msgstr "🎯 掷出: {roll} + 加值{modifier} = {total} vs DC {dc}\\n"
+
+msgid "🎯 掷出: {roll} + 加值{modifier} = {total}\\\\n"
+msgstr "🎯 掷出: {roll} + 加值{modifier} = {total}\\\\n"
+
+msgid "🎯 掷出: {roll} + 加值{modifier} = {total}\\n"
+msgstr "🎯 掷出: {roll} + 加值{modifier} = {total}\\n"
+
+msgid "🎯 掷出: {total}\\\\n"
+msgstr "🎯 掷出: {total}\\\\n"
+
+msgid "🎯 掷出: {total}\\n"
+msgstr "🎯 掷出: {total}\\n"
+
+msgid "🎯 目标值: {value}"
+msgstr "🎯 Target: {value}"
+
+msgid "🎯 目标值: {value}\\\\n"
+msgstr "🎯 目标值: {value}\\\\n"
+
+msgid "🎯 目标值: {value}\\n"
+msgstr "🎯 目标值: {value}\\n"
+
+msgid "🎯 被动方: {skill2}={val2} 掷出{roll2} → {name2}\\\\n"
+msgstr "🎯 被动方: {skill2}={val2} 掷出{roll2} → {name2}\\\\n"
+
+msgid "🎯 被动方: {skill2}={val2} 掷出{roll2} → {name2}\\n"
+msgstr "🎯 被动方: {skill2}={val2} 掷出{roll2} → {name2}\\n"
+
+msgid "🎲 CoC检定 (技能值: {value})"
+msgstr "🎲 CoC Check (Skill: {value})"
+
+msgid "🎲 Fate骰子: [{rolls}] = {total}"
+msgstr "🎲 Fate Dice: [{rolls}] = {total}"
+
+msgid "🎲 WoD骰池: {pool}d10 (困难度{difficulty})\\\\n"
+msgstr "🎲 WoD骰池: {pool}d10 (困难度{difficulty})\\\\n"
+
+msgid "🎲 WoD骰池: {pool}d10 (困难度{difficulty})\\n"
+msgstr "🎲 WoD骰池: {pool}d10 (困难度{difficulty})\\n"
+
+msgid "🎲 {name} 投出 {expr} = {result} (大成功!)"
+msgstr "🎲 {name} rolled {expr} = {result} (Critical Success!)"
+
+msgid "🎲 {name} 进行 {ability} 豁免检定 {prof}\\\\n"
+msgstr "🎲 {name} 进行 {ability} 豁免检定 {prof}\\\\n"
+
+msgid "🎲 {name} 进行 {ability} 豁免检定 {prof}\\n"
+msgstr "🎲 {name} 进行 {ability} 豁免检定 {prof}\\n"
+
+msgid "🎲 {name} 进行 {skill} 检定 {prof}\\\\n"
+msgstr "🎲 {name} 进行 {skill} 检定 {prof}\\\\n"
+
+msgid "🎲 {name} 进行 {skill} 检定 {prof}\\n"
+msgstr "🎲 {name} 进行 {skill} 检定 {prof}\\n"
+
+msgid "🎲 {name} 进行 {skill} 检定\\\\n"
+msgstr "🎲 {name} 进行 {skill} 检定\\\\n"
+
+msgid "🎲 {name} 进行 {skill} 检定\\n"
+msgstr "🎲 {name} 进行 {skill} 检定\\n"
+
+msgid "🎲 {result}"
+msgstr "🎲 {result}"
+
+msgid "🎲 优势掷骰: {result}"
+msgstr "🎲 Advantage Roll: {result}"
+
+msgid "🎲 劣势掷骰: {result}"
+msgstr "🎲 Disadvantage Roll: {result}"
+
+msgid "🎲 总投骰次数: {count}"
+msgstr "🎲 Total Dice Rolls: {count}"
+
+msgid "🎲 掷出: {roll} > {value} → 成功!\\\\n"
+msgstr "🎲 掷出: {roll} > {value} → 成功!\\\\n"
+
+msgid "🎲 掷出: {roll} > {value} → 成功!\\n"
+msgstr "🎲 掷出: {roll} > {value} → 成功!\\n"
+
+msgid "🎲 掷出: {roll} ≤ {value} → 未成长"
+msgstr "🎲 Rolled: {roll} ≤ {value} → No growth"
+
+msgid "🎲 爆炸骰: {result}"
+msgstr "🎲 Exploding Dice: {result}"
+
+msgid "🎲 结果: [{rolls}]\\\\n"
+msgstr "🎲 结果: [{rolls}]\\\\n"
+
+msgid "🎲 结果: [{rolls}]\\n"
+msgstr "🎲 结果: [{rolls}]\\n"
+
+msgid "🎲 重复掷骰 {times}次 {expr}:\\\\n"
+msgstr "🎲 重复掷骰 {times}次 {expr}:\\\\n"
+
+msgid "🎲 重复掷骰 {times}次 {expr}:\\n"
+msgstr "🎲 重复掷骰 {times}次 {expr}:\\n"
+
+msgid "🎲 随机姓名:\\\\n"
+msgstr "🎲 随机姓名:\\\\n"
+
+msgid "🎲 随机姓名:\\n"
+msgstr "🎲 随机姓名:\\n"
+
+msgid "🎲 隐藏掷骰: {result}"
+msgstr "🎲 Hidden Roll: {result}"
+
+msgid "🏆 结果: {winner}"
+msgstr "🏆 Result: {winner}"
+
+msgid "👥 玩家评分"
+msgstr "👥 Player Ratings"
+
+msgid "💀 大失败"
+msgstr "💀 Botch"
+
+msgid "💔 理智损失: {loss}\\\\n"
+msgstr "💔 理智损失: {loss}\\\\n"
+
+msgid "💔 理智损失: {loss}\\n"
+msgstr "💔 理智损失: {loss}\\n"
+
+msgid "📄 当前没有角色卡"
+msgstr "📄 No character sheet"
+
+msgid "📄 当前没有角色卡，使用 create_character 创建新角色"
+msgstr "📄 No character sheet, use create_character to create one"
+
+msgid "📄 暂无已上传的文档"
+msgstr "📄 No uploaded documents"
+
+msgid "📈 {name} 的 {skill} 成长检定\\\\n"
+msgstr "📈 {name} 的 {skill} 成长检定\\\\n"
+
+msgid "📈 {name} 的 {skill} 成长检定\\n"
+msgstr "📈 {name} 的 {skill} 成长检定\\n"
+
+msgid "📈 游戏统计"
+msgstr "📈 Game Statistics"
+
+msgid "📊 STR:{STR} CON:{CON} SIZ:{SIZ} DEX:{DEX} APP:{APP} INT:{INT} POW:{POW} EDU:{EDU} LUC:{LUC}\\\\n"
+msgstr "📊 STR:{STR} CON:{CON} SIZ:{SIZ} DEX:{DEX} APP:{APP} INT:{INT} POW:{POW} EDU:{EDU} LUC:{LUC}\\\\n"
+
+msgid "📊 STR:{STR} CON:{CON} SIZ:{SIZ} DEX:{DEX} APP:{APP} INT:{INT} POW:{POW} EDU:{EDU} LUC:{LUC}\\n"
+msgstr "📊 STR:{STR} CON:{CON} SIZ:{SIZ} DEX:{DEX} APP:{APP} INT:{INT} POW:{POW} EDU:{EDU} LUC:{LUC}\\n"
+
+msgid "📊 STR:{STR} DEX:{DEX} CON:{CON} INT:{INT} WIS:{WIS} CHA:{CHA}"
+msgstr "📊 STR:{STR} DEX:{DEX} CON:{CON} INT:{INT} WIS:{WIS} CHA:{CHA}"
+
+msgid "📊 TRPG 跑团战报"
+msgstr "📊 TRPG Session Report"
+
+msgid "📊 属性: "
+msgstr "📊 Attributes: "
+
+msgid "📊 属性: {attrs}\\\\n"
+msgstr "📊 属性: {attrs}\\\\n"
+
+msgid "📊 属性: {attrs}\\n"
+msgstr "📊 属性: {attrs}\\n"
+
+msgid "📊 成功数: {count}\\\\n"
+msgstr "📊 成功数: {count}\\\\n"
+
+msgid "📊 成功数: {count}\\n"
+msgstr "📊 成功数: {count}\\n"
+
+msgid "📊 结果: {level}\\\\n"
+msgstr "📊 结果: {level}\\\\n"
+
+msgid "📊 结果: {level}\\n"
+msgstr "📊 结果: {level}\\n"
+
+msgid "📋 先攻列表为空"
+msgstr "📋 Initiative list is empty"
+
+msgid "📋 角色卡: {name}\\\\n"
+msgstr "📋 角色卡: {name}\\\\n"
+
+msgid "📋 角色卡: {name}\\n"
+msgstr "📋 角色卡: {name}\\n"
+
+msgid "📋 角色卡列表:\\\\n"
+msgstr "📋 角色卡列表:\\\\n"
+
+msgid "📋 角色卡列表:\\n"
+msgstr "📋 角色卡列表:\\n"
+
+msgid "📚 已上传的文档:\\\\n"
+msgstr "📚 已上传的文档:\\\\n"
+
+msgid "📚 已上传的文档:\\n"
+msgstr "📚 已上传的文档:\\n"
+
+msgid "📝 关键事件: {count}"
+msgstr "📝 Key Events: {count}"
+
+msgid "📭 尚未上传模组文档或未开始初始化"
+msgstr "📭 No module document uploaded or initialization not started."
+
+msgid "🔍 未找到相关内容"
+msgstr "🔍 No relevant content found"
+
+msgid "🔑 关键事件回顾"
+msgstr "🔑 Key Event Recap"
+
+msgid "🔧 技能: {skills}"
+msgstr "🔧 Skills: {skills}"
+
+msgid "🤖 AI回答:\\\\n{answer}"
+msgstr "🤖 AI回答:\\\\n{answer}"
+
+msgid "🤖 AI回答:\\n{answer}"
+msgstr "🤖 AI回答:\\n{answer}"
+
+msgid "🧠 SAN:{san}/{sanmax} "
+msgstr "🧠 SAN:{san}/{sanmax} "
+
+msgid "🧠 SAN:{san}/{sanmax}\\\\n"
+msgstr "🧠 SAN:{san}/{sanmax}\\\\n"
+
+msgid "🧠 SAN:{san}/{sanmax}\\n"
+msgstr "🧠 SAN:{san}/{sanmax}\\n"
+
+msgid "🧠 剩余SAN: {san}"
+msgstr "🧠 Remaining SAN: {san}"
+

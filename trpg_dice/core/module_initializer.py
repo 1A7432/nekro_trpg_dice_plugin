@@ -16,6 +16,8 @@ from nekro_agent.api.core import config as core_config
 from nekro_agent.services.agent.openai import gen_openai_chat_response, OpenAIResponse
 from nekro_agent.api import core
 
+from ..i18n import t_prompt
+
 
 class ModuleInitializer:
     """模组初始化器 - 后台 LLM 全文驱动分析"""
@@ -117,88 +119,10 @@ class ModuleInitializer:
                 f"[ModuleInit] 文本过长已截断: {len(full_text)} -> {len(truncated_text)} 字符"
             )
 
-        prompt = f"""你是一位专业的TRPG模组解析专家。请仔细阅读以下模组全文，提取并整理所有关键信息。
-
-【模组名称】{doc_name}
-
-【模组全文】
-{truncated_text}
-
-【输出要求】
-请输出严格格式的 JSON，包含以下字段：
-
-{{
-    "scenes": [
-        {{
-            "name": "场景名称（如：废弃医院大厅）",
-            "focus": "场景当前焦点（探索/交涉/追逐/战斗/恐怖/潜伏/休整，选最贴切的1个）",
-            "description": "玩家视角可见的场景描述（外观、陈设、氛围，不含剧透）",
-            "keeper_notes": "守秘人幕后信息（隐藏房间、陷阱、NPC真实位置、危险提示等，不可告知玩家）",
-            "npcs_present": ["在场NPC名称列表"],
-            "clues": [
-                {{
-                    "name": "线索名称",
-                    "description": "线索内容描述",
-                    "discovery_method": "发现方式（如：侦察检定、搜索房间、与NPC对话）"
-                }}
-            ]
-        }}
-    ],
-    "npcs": [
-        {{
-            "name": "NPC全名",
-            "description": "外在描述（外貌、穿着、举止、口音等玩家可直接观察到的信息）",
-            "secret": "隐藏信息（真实动机、与事件的关联、不可告人的秘密、真实身份）",
-            "role": "在模组中的角色（如：委托人、嫌疑人、受害者、反派）"
-        }}
-    ],
-    "clues": [
-        {{
-            "name": "线索名称",
-            "description": "线索内容",
-            "location": "所在场景或NPC",
-            "leads_to": "指向的内容（如下一场景、某个真相、某个NPC）"
-        }}
-    ],
-    "timeline": [
-        {{"time": "时间点", "event": "事件描述", "involved": ["涉及NPC"]}}
-    ],
-    "background": "模组背景故事（世界观、历史事件、起因等）",
-    "threats": [
-        {{
-            "name": "威胁名称（如：野狗群头领）",
-            "type": "怪物/NPC/环境/陷阱",
-            "description": "外在描述（玩家可见特征）",
-            "stats": {{"HP": "生命值", "STR": "力量", "CON": "体质", "DEX": "敏捷", "SIZ": "体型"}},
-            "attacks": ["攻击方式（如：撕咬 1d6+db）"],
-            "san_loss": "理智损失（如：0/1d6）",
-            "special_abilities": "特殊能力（如：群体攻击、不可驯服）",
-            "location": "出现地点"
-        }}
-    ],
-    "truths": [
-        {{
-            "name": "真相名称",
-            "description": "幕后真相的完整描述",
-            "revealed_by": "通过什么线索/场景揭示"
-        }}
-    ],
-    "opening_facts": [
-        "模组开场时玩家（调查员）已经知道的事实1",
-        "模组开场时玩家已经知道的事实2"
-    ],
-    "summary": "模组一句话概要（30字以内）"
-}}
-
-【注意事项】
-- 必须覆盖模组中所有主要场景、NPC、线索，不要遗漏
-- description 字段只包含玩家可直接感知的信息
-- keeper_notes 和 secret 字段包含不可告知玩家的信息
-- timeline 按时间顺序排列
-- 输出必须是合法 JSON，不要包含 markdown 代码块标记
-- 如果某个字段没有内容，使用空数组 [] 或空字符串 ""
-
-只输出 JSON，不要其他内容。"""
+        prompt = t_prompt("prompt.module.analysis").format(
+            doc_name=doc_name,
+            truncated_text=truncated_text,
+        )
 
         try:
             model_group = core_config.get_model_group_info(self.config.MODULE_INIT_MODEL_GROUP)

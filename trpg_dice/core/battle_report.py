@@ -9,6 +9,8 @@ import json
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
+from ..i18n import _
+
 
 class SessionRecord:
     """跑团记录类"""
@@ -186,7 +188,7 @@ class BattleReportGenerator:
         session_id = f"session_{int(time.time())}"
         
         if not session_name:
-            session_name = f"跑团-{datetime.now().strftime('%Y%m%d-%H%M')}"
+            session_name = _("跑团-{time}").format(time=datetime.now().strftime('%Y%m%d-%H%M'))
         
         record = SessionRecord(session_id)
         
@@ -263,7 +265,7 @@ class BattleReportGenerator:
         返回: (分数, 评价)
         """
         if user_id not in record.player_stats:
-            return 0, "未参与"
+            return 0, _("未参与")
         
         stats = record.player_stats[user_id]
         score = 60  # 基础分
@@ -293,15 +295,15 @@ class BattleReportGenerator:
         
         # 评价等级
         if score >= 90:
-            rating = "⭐⭐⭐⭐⭐ 传奇表现"
+            rating = _("⭐⭐⭐⭐⭐ 传奇表现")
         elif score >= 80:
-            rating = "⭐⭐⭐⭐ 优秀表现"
+            rating = _("⭐⭐⭐⭐ 优秀表现")
         elif score >= 70:
-            rating = "⭐⭐⭐ 良好表现"
+            rating = _("⭐⭐⭐ 良好表现")
         elif score >= 60:
-            rating = "⭐⭐ 合格表现"
+            rating = _("⭐⭐ 合格表现")
         else:
-            rating = "⭐ 需要努力"
+            rating = _("⭐ 需要努力")
         
         return score, rating
     
@@ -311,50 +313,50 @@ class BattleReportGenerator:
         
         # 标题和基本信息
         lines.append("=" * 50)
-        lines.append(f"📊 TRPG 跑团战报")
+        lines.append(_("📊 TRPG 跑团战报"))
         lines.append("=" * 50)
         lines.append("")
-        lines.append(f"🎮 会话名称: {session_name}")
-        lines.append(f"⏰ 开始时间: {datetime.fromtimestamp(record.start_time).strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append(_("🎮 会话名称: {name}").format(name=session_name))
+        lines.append(_("⏰ 开始时间: {time}").format(time=datetime.fromtimestamp(record.start_time).strftime('%Y-%m-%d %H:%M:%S')))
         if record.end_time:
-            lines.append(f"⏰ 结束时间: {datetime.fromtimestamp(record.end_time).strftime('%Y-%m-%d %H:%M:%S')}")
-        lines.append(f"⏱️ 游戏时长: {record.get_duration_minutes()} 分钟")
+            lines.append(_("⏰ 结束时间: {time}").format(time=datetime.fromtimestamp(record.end_time).strftime('%Y-%m-%d %H:%M:%S')))
+        lines.append(_("⏱️ 游戏时长: {minutes} 分钟").format(minutes=record.get_duration_minutes()))
         lines.append("")
         
         # 玩家评分
         lines.append("=" * 50)
-        lines.append("👥 玩家评分")
+        lines.append(_("👥 玩家评分"))
         lines.append("=" * 50)
         lines.append("")
         
         for user_id, stats in record.player_stats.items():
-            char_name = stats.get("char_name", "未知角色")
+            char_name = stats.get("char_name", _("未知角色"))
             score, rating = self.calculate_player_score(user_id, record)
             
-            lines.append(f"🎭 {char_name}")
-            lines.append(f"   总分: {score}/100 - {rating}")
-            lines.append(f"   投骰次数: {stats.get('total_rolls', 0)}")
-            lines.append(f"   技能检定: {stats.get('successful_checks', 0)}/{stats.get('total_checks', 0)} 成功")
-            lines.append(f"   行动次数: {stats.get('action_count', 0)}")
-            lines.append(f"   大成功: {stats.get('critical_success', 0)} 次")
-            lines.append(f"   大失败: {stats.get('critical_failure', 0)} 次")
+            lines.append(_("🎭 {name}").format(name=char_name))
+            lines.append(_("   总分: {score}/100 - {rating}").format(score=score, rating=rating))
+            lines.append(_("   投骰次数: {count}").format(count=stats.get('total_rolls', 0)))
+            lines.append(_("   技能检定: {success}/{total} 成功").format(success=stats.get('successful_checks', 0), total=stats.get('total_checks', 0)))
+            lines.append(_("   行动次数: {count}").format(count=stats.get('action_count', 0)))
+            lines.append(_("   大成功: {count} 次").format(count=stats.get('critical_success', 0)))
+            lines.append(_("   大失败: {count} 次").format(count=stats.get('critical_failure', 0)))
             lines.append("")
         
         # 游戏统计
         lines.append("=" * 50)
-        lines.append("📈 游戏统计")
+        lines.append(_("📈 游戏统计"))
         lines.append("=" * 50)
         lines.append("")
-        lines.append(f"🎲 总投骰次数: {len(record.dice_rolls)}")
-        lines.append(f"🎯 技能检定次数: {len(record.skill_checks)}")
-        lines.append(f"⚔️ 战斗轮次: {len(record.combat_rounds)}")
-        lines.append(f"📝 关键事件: {len(record.key_events)}")
+        lines.append(_("🎲 总投骰次数: {count}").format(count=len(record.dice_rolls)))
+        lines.append(_("🎯 技能检定次数: {count}").format(count=len(record.skill_checks)))
+        lines.append(_("⚔️ 战斗轮次: {count}").format(count=len(record.combat_rounds)))
+        lines.append(_("📝 关键事件: {count}").format(count=len(record.key_events)))
         lines.append("")
         
         # 关键事件回顾
         if record.key_events:
             lines.append("=" * 50)
-            lines.append("🔑 关键事件回顾")
+            lines.append(_("🔑 关键事件回顾"))
             lines.append("=" * 50)
             lines.append("")
             
@@ -371,7 +373,7 @@ class BattleReportGenerator:
         
         if critical_moments:
             lines.append("=" * 50)
-            lines.append("✨ 精彩时刻")
+            lines.append(_("✨ 精彩时刻"))
             lines.append("=" * 50)
             lines.append("")
             
@@ -379,11 +381,11 @@ class BattleReportGenerator:
                 char_name = moment["char_name"]
                 expression = moment["expression"]
                 result = moment["result"]
-                lines.append(f"🎲 {char_name} 投出 {expression} = {result} (大成功!)")
+                lines.append(_("🎲 {name} 投出 {expr} = {result} (大成功!)").format(name=char_name, expr=expression, result=result))
             lines.append("")
         
         lines.append("=" * 50)
-        lines.append("感谢各位玩家的参与！期待下次冒险！")
+        lines.append(_("感谢各位玩家的参与！期待下次冒险！"))
         lines.append("=" * 50)
         
         return "\n".join(lines)
@@ -393,52 +395,52 @@ class BattleReportGenerator:
         lines = []
         
         # 标题
-        lines.append(f"# 📊 TRPG 跑团战报")
+        lines.append(_("# 📊 TRPG 跑团战报"))
         lines.append("")
-        lines.append(f"## 🎮 会话信息")
+        lines.append(_("## 🎮 会话信息"))
         lines.append("")
-        lines.append(f"- **会话名称**: {session_name}")
-        lines.append(f"- **开始时间**: {datetime.fromtimestamp(record.start_time).strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("- " + _("**会话名称**: {name}").format(name=session_name))
+        lines.append("- " + _("**开始时间**: {time}").format(time=datetime.fromtimestamp(record.start_time).strftime('%Y-%m-%d %H:%M:%S')))
         if record.end_time:
-            lines.append(f"- **结束时间**: {datetime.fromtimestamp(record.end_time).strftime('%Y-%m-%d %H:%M:%S')}")
-        lines.append(f"- **游戏时长**: {record.get_duration_minutes()} 分钟")
+            lines.append("- " + _("**结束时间**: {time}").format(time=datetime.fromtimestamp(record.end_time).strftime('%Y-%m-%d %H:%M:%S')))
+        lines.append("- " + _("**游戏时长**: {minutes} 分钟").format(minutes=record.get_duration_minutes()))
         lines.append("")
         
         # 玩家评分
-        lines.append("## 👥 玩家评分")
+        lines.append(_("## 👥 玩家评分"))
         lines.append("")
         
         for user_id, stats in record.player_stats.items():
-            char_name = stats.get("char_name", "未知角色")
+            char_name = stats.get("char_name", _("未知角色"))
             score, rating = self.calculate_player_score(user_id, record)
             
-            lines.append(f"### 🎭 {char_name}")
+            lines.append(_("### 🎭 {name}").format(name=char_name))
             lines.append("")
-            lines.append(f"**总分**: {score}/100 - {rating}")
+            lines.append(_("**总分**: {score}/100 - {rating}").format(score=score, rating=rating))
             lines.append("")
-            lines.append("| 统计项 | 数值 |")
+            lines.append(_("| 统计项 | 数值 |"))
             lines.append("|--------|------|")
-            lines.append(f"| 投骰次数 | {stats.get('total_rolls', 0)} |")
-            lines.append(f"| 技能检定成功率 | {stats.get('successful_checks', 0)}/{stats.get('total_checks', 0)} |")
-            lines.append(f"| 行动次数 | {stats.get('action_count', 0)} |")
-            lines.append(f"| 大成功次数 | {stats.get('critical_success', 0)} |")
-            lines.append(f"| 大失败次数 | {stats.get('critical_failure', 0)} |")
+            lines.append(_("| 投骰次数 | {count} |").format(count=stats.get('total_rolls', 0)))
+            lines.append(_("| 技能检定成功率 | {success}/{total} |").format(success=stats.get('successful_checks', 0), total=stats.get('total_checks', 0)))
+            lines.append(_("| 行动次数 | {count} |").format(count=stats.get('action_count', 0)))
+            lines.append(_("| 大成功次数 | {count} |").format(count=stats.get('critical_success', 0)))
+            lines.append(_("| 大失败次数 | {count} |").format(count=stats.get('critical_failure', 0)))
             lines.append("")
         
         # 游戏统计
-        lines.append("## 📈 游戏统计")
+        lines.append(_("## 📈 游戏统计"))
         lines.append("")
-        lines.append("| 项目 | 次数 |")
+        lines.append(_("| 项目 | 次数 |"))
         lines.append("|------|------|")
-        lines.append(f"| 🎲 总投骰次数 | {len(record.dice_rolls)} |")
-        lines.append(f"| 🎯 技能检定次数 | {len(record.skill_checks)} |")
-        lines.append(f"| ⚔️ 战斗轮次 | {len(record.combat_rounds)} |")
-        lines.append(f"| 📝 关键事件 | {len(record.key_events)} |")
+        lines.append(_("| 🎲 总投骰次数 | {count} |").format(count=len(record.dice_rolls)))
+        lines.append(_("| 🎯 技能检定次数 | {count} |").format(count=len(record.skill_checks)))
+        lines.append(_("| ⚔️ 战斗轮次 | {count} |").format(count=len(record.combat_rounds)))
+        lines.append(_("| 📝 关键事件 | {count} |").format(count=len(record.key_events)))
         lines.append("")
         
         # 关键事件
         if record.key_events:
-            lines.append("## 🔑 关键事件回顾")
+            lines.append(_("## 🔑 关键事件回顾"))
             lines.append("")
             
             for i, event in enumerate(record.key_events[-10:], 1):
@@ -453,7 +455,7 @@ class BattleReportGenerator:
         ]
         
         if critical_moments:
-            lines.append("## ✨ 精彩时刻")
+            lines.append(_("## ✨ 精彩时刻"))
             lines.append("")
             
             for moment in critical_moments[-5:]:
@@ -461,13 +463,13 @@ class BattleReportGenerator:
                 expression = moment["expression"]
                 result = moment["result"]
                 timestamp = datetime.fromtimestamp(moment["timestamp"]).strftime('%H:%M:%S')
-                lines.append(f"- **[{timestamp}]** 🎲 {char_name} 投出 `{expression}` = **{result}** (大成功!)")
+                lines.append("- " + _("**[{time}]** 🎲 {name} 投出 `{expr}` = **{result}** (大成功!)").format(time=timestamp, name=char_name, expr=expression, result=result))
             lines.append("")
         
         # 结尾
         lines.append("---")
         lines.append("")
-        lines.append("*感谢各位玩家的参与！期待下次冒险！*")
+        lines.append(_("*感谢各位玩家的参与！期待下次冒险！*"))
         lines.append("")
         
         return "\n".join(lines)
@@ -575,7 +577,7 @@ class BattleReportManager:
             return None, None, None
         if not session_name:
             dt_str = datetime.fromtimestamp(record.start_time).strftime('%Y%m%d-%H%M')
-            session_name = f"跑团-{dt_str}"
+            session_name = _("跑团-{time}").format(time=dt_str)
         text_report = self.generator.generate_report_text(record, session_name)
         markdown_report = self.generator.generate_markdown_report(record, session_name)
         return text_report, markdown_report, session_name

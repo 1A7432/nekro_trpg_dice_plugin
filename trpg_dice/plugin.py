@@ -35,6 +35,7 @@ from .core.document_manager import VectorDatabaseManager, DocumentProcessor
 from .core.module_initializer import ModuleInitializer
 from .core.prompt_injection import register_prompt_injections
 from .core.battle_report import BattleReportManager
+from .i18n import _, t_skill_name, t_attribute_name
 
 # 创建插件实例
 plugin = NekroPlugin(
@@ -187,34 +188,34 @@ async def create_character(
         if system_name == "CoC":
             attrs = character.attributes
             response = (
-                f"✅ 角色卡 \"{name}\" 创建成功！\n"
-                f"🎮 系统: COC7\n"
-                f"📊 属性: "
-                f"STR:{attrs.get('STR', '?')} "
-                f"CON:{attrs.get('CON', '?')} "
-                f"DEX:{attrs.get('DEX', '?')} "
-                f"INT:{attrs.get('INT', '?')} "
-                f"POW:{attrs.get('POW', '?')} "
-                f"APP:{attrs.get('APP', '?')} "
-                f"SIZ:{attrs.get('SIZ', '?')} "
-                f"EDU:{attrs.get('EDU', '?')} "
-                f"LUC:{attrs.get('LUC', '?')}\n"
-                f"❤️ HP:{attrs.get('HP', '?')}/{attrs.get('HPMAX', '?')} "
-                f"🧠 SAN:{attrs.get('SAN', '?')}/{attrs.get('SANMAX', '?')} "
-                f"✨ MP:{attrs.get('MP', '?')}/{attrs.get('MPMAX', '?')}\n"
+                _('✅ 角色卡 "{name}" 创建成功！\n').format(name=name)
+                + _('🎮 系统: COC7\n')
+                + _('📊 属性: ')
+                + f"STR:{attrs.get('STR', '?')} "
+                + f"CON:{attrs.get('CON', '?')} "
+                + f"DEX:{attrs.get('DEX', '?')} "
+                + f"INT:{attrs.get('INT', '?')} "
+                + f"POW:{attrs.get('POW', '?')} "
+                + f"APP:{attrs.get('APP', '?')} "
+                + f"SIZ:{attrs.get('SIZ', '?')} "
+                + f"EDU:{attrs.get('EDU', '?')} "
+                + f"LUC:{attrs.get('LUC', '?')}\n"
+                + _('❤️ HP:{hp}/{hpmax} ').format(hp=attrs.get('HP', '?'), hpmax=attrs.get('HPMAX', '?'))
+                + _('🧠 SAN:{san}/{sanmax} ').format(san=attrs.get('SAN', '?'), sanmax=attrs.get('SANMAX', '?'))
+                + _('✨ MP:{mp}/{mpmax}\n').format(mp=attrs.get('MP', '?'), mpmax=attrs.get('MPMAX', '?'))
             )
         else:
             attrs = character.attributes
             response = (
-                f"✅ 角色卡 \"{name}\" 创建成功！\n"
-                f"🎮 系统: DND5E\n"
-                f"📊 属性: "
-                f"STR:{attrs.get('STR', '?')} "
-                f"DEX:{attrs.get('DEX', '?')} "
-                f"CON:{attrs.get('CON', '?')} "
-                f"INT:{attrs.get('INT', '?')} "
-                f"WIS:{attrs.get('WIS', '?')} "
-                f"CHA:{attrs.get('CHA', '?')}\n"
+                _('✅ 角色卡 "{name}" 创建成功！\n').format(name=name)
+                + _('🎮 系统: DND5E\n')
+                + _('📊 属性: ')
+                + f"STR:{attrs.get('STR', '?')} "
+                + f"DEX:{attrs.get('DEX', '?')} "
+                + f"CON:{attrs.get('CON', '?')} "
+                + f"INT:{attrs.get('INT', '?')} "
+                + f"WIS:{attrs.get('WIS', '?')} "
+                + f"CHA:{attrs.get('CHA', '?')}\n"
             )
         return response
     except Exception as e:
@@ -235,7 +236,7 @@ async def get_character_sheet(_ctx: AgentCtx) -> str:
     try:
         character = await character_manager.get_character(user_id, chat_key)
         if not character or character.name == "default":
-            return "❌ 当前没有角色卡，请先使用 create_character 创建角色"
+            return _("❌ 当前没有角色卡，请先使用 create_character 创建角色")
 
         response = f"📋 角色卡: {character.name}\n"
         response += f"🎮 系统: {character.system}\n"
@@ -245,7 +246,7 @@ async def get_character_sheet(_ctx: AgentCtx) -> str:
             response += "\n📊 基础属性:\n"
             for attr in ["STR", "CON", "SIZ", "DEX", "APP", "INT", "POW", "EDU", "LUC"]:
                 if attr in attrs:
-                    response += f"  {attr}: {attrs[attr]}\n"
+                    response += f"  {t_attribute_name(attr)}: {attrs[attr]}\n"
 
             response += "\n❤️ 状态:\n"
             response += f"  HP: {attrs.get('HP', '?')}/{attrs.get('HPMAX', '?')}\n"
@@ -260,14 +261,14 @@ async def get_character_sheet(_ctx: AgentCtx) -> str:
             attrs = character.attributes
             response += "\n📊 属性:\n"
             for k, v in attrs.items():
-                response += f"  {k}: {v}\n"
+                response += f"  {t_attribute_name(k)}: {v}\n"
 
         if character.skills:
             response += "\n🔧 技能:\n"
             # 按技能值排序显示
             sorted_skills = sorted(character.skills.items(), key=lambda x: x[1], reverse=True)
             for skill, value in sorted_skills:
-                response += f"  {skill}: {value}\n"
+                response += f"  {t_skill_name(skill)}: {value}\n"
 
         if character.equipment:
             response += f"\n🎒 装备: {', '.join(character.equipment)}\n"
@@ -299,19 +300,19 @@ async def update_character_skill(_ctx: AgentCtx, skill_name: str, value: int) ->
     try:
         character = await character_manager.get_character(user_id, chat_key)
         if not character or character.name == "default":
-            return "❌ 当前没有角色卡，请先使用 create_character 创建角色"
+            return _("❌ 当前没有角色卡，请先使用 create_character 创建角色")
 
         # 尝试通过别名查找标准技能名
         standard_name = character_manager.find_skill_by_alias(character, skill_name)
         target_skill = standard_name if standard_name else skill_name
 
-        old_value = character.skills.get(target_skill, "未设定")
+        old_value = character.skills.get(target_skill, _("未设定"))
         character.skills[target_skill] = value
         character.last_updated = time.time()
 
         await character_manager.save_character(user_id, chat_key, character)
 
-        return f"✅ 已更新 {character.name} 的 {target_skill}: {old_value} → {value}"
+        return _('✅ 已更新 {name} 的 {skill}: {old} → {new}').format(name=character.name, skill=t_skill_name(target_skill), old=old_value, new=value)
     except Exception as e:
         return f"❌ 更新技能失败: {str(e)}"
 
@@ -334,9 +335,9 @@ async def update_character_attribute(_ctx: AgentCtx, attribute: str, value: int)
     try:
         character = await character_manager.get_character(user_id, chat_key)
         if not character or character.name == "default":
-            return "❌ 当前没有角色卡，请先使用 create_character 创建角色"
+            return _("❌ 当前没有角色卡，请先使用 create_character 创建角色")
 
-        old_value = character.attributes.get(attribute, "未设定")
+        old_value = character.attributes.get(attribute, _("未设定"))
         character.attributes[attribute] = value
         character.last_updated = time.time()
 
@@ -355,7 +356,7 @@ async def update_character_attribute(_ctx: AgentCtx, attribute: str, value: int)
 
         await character_manager.save_character(user_id, chat_key, character)
 
-        return f"✅ 已更新 {character.name} 的 {attribute}: {old_value} → {value}"
+        return _('✅ 已更新 {name} 的 {attr}: {old} → {new}').format(name=character.name, attr=t_attribute_name(attribute), old=old_value, new=value)
     except Exception as e:
         return f"❌ 更新属性失败: {str(e)}"
 
@@ -373,12 +374,12 @@ async def roll_dice(_ctx: AgentCtx, expression: str) -> str:
     """
     try:
         result = DiceRoller.roll_expression(expression)
-        response = f"🎲 {result.format_result()}"
+        response = _('🎲 {result}').format(result=result.format_result())
 
         if result.is_critical_success():
-            response += " ✨ 大成功!"
+            response += _(" ✨ 大成功!")
         elif result.is_critical_failure():
-            response += " 💥 大失败!"
+            response += _(" 💥 大失败!")
 
         return response
     except ValueError as e:
@@ -412,7 +413,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
     try:
         character = await character_manager.get_character(user_id, chat_key)
         if not character or character.name == "default":
-            return "❌ 当前没有角色卡，请先使用 create_character 创建角色"
+            return _("❌ 当前没有角色卡，请先使用 create_character 创建角色")
 
         # 查找技能别名
         standard_name = character_manager.find_skill_by_alias(character, skill_name)
@@ -443,7 +444,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
             emoji = "✨" if success else "❌"
 
             response = (
-                f"🎲 {character.name} 进行 {target_skill} 检定\n"
+                f"🎲 {character.name} 进行 {t_skill_name(target_skill)} 检定\n"
                 f"🎯 目标值: {skill_value}"
             )
             if bonus > 0:
@@ -492,7 +493,7 @@ async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: 
             emoji = "✨" if success else "❌"
             prof_label = "(熟练)" if proficient else ""
             response = (
-                f"🎲 {character.name} 进行 {target_skill} 检定 {prof_label}\n"
+                f"🎲 {character.name} 进行 {t_skill_name(target_skill)} 检定 {prof_label}\n"
             )
             if adv_label:
                 response += f"🎭 {adv_label}\n"
@@ -515,9 +516,9 @@ async def list_characters(_ctx: AgentCtx) -> str:
     try:
         characters = await character_manager.list_characters(user_id, chat_key)
         if not characters:
-            return "📄 当前没有角色卡，使用 create_character 创建新角色"
+            return _("📄 当前没有角色卡，使用 create_character 创建新角色")
 
-        response = "📋 角色卡列表:\n"
+        response = _("📋 角色卡列表:\n")
         for i, char in enumerate(characters, 1):
             response += f"{i}. {char['name']} ({char['system']})\n"
         return response
@@ -536,7 +537,7 @@ async def get_module_catalog(_ctx: AgentCtx) -> str:
     try:
         catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
         if not catalog_data:
-            return "❌ 当前没有模组目录，请先上传模组（module/story 类型）"
+            return _("❌ 当前没有模组目录，请先上传模组（module/story 类型）")
 
         catalog = json.loads(catalog_data)
         status = await store.get(user_key="", store_key=f"module_init_status.{chat_key}")
@@ -604,7 +605,7 @@ async def update_knowledge_pool(_ctx: AgentCtx, player_visible_patch: str = "", 
             keeper_pool = deep_merge(keeper_pool, patch)
             await store.set(user_key="", store_key=f"module_keeper_pool.{chat_key}", value=json.dumps(keeper_pool, ensure_ascii=False))
 
-        return "✅ 知识池已增量更新"
+        return _("✅ 知识池已增量更新")
     except Exception as e:
         return f"❌ 更新知识池失败: {str(e)}"
 
@@ -619,14 +620,14 @@ async def start_module_initialization(_ctx: AgentCtx) -> str:
     try:
         status = await store.get(user_key="", store_key=f"module_init_status.{chat_key}")
         if status == "processing":
-            return "⏳ 模组初始化正在进行中，请稍候..."
+            return _("⏳ 模组初始化正在进行中，请稍候...")
 
         chunks = await vector_db.list_all_chunks(chat_key)
         if not chunks:
-            return "❌ 当前没有上传的模组文档，请先上传 module/story 类型文档"
+            return _("❌ 当前没有上传的模组文档，请先上传 module/story 类型文档")
 
         asyncio.create_task(module_initializer.initialize(chat_key))
-        return f"✅ 已启动模组知识池初始化（{len(chunks)} 个分片），后台处理中..."
+        return _('✅ 已启动模组知识池初始化（{count} 个分片），后台处理中...').format(count=len(chunks))
     except Exception as e:
         return f"❌ 启动初始化失败: {str(e)}"
 
@@ -640,13 +641,13 @@ async def get_module_init_status(_ctx: AgentCtx) -> str:
     try:
         status = await store.get(user_key="", store_key=f"module_init_status.{chat_key}")
         if not status:
-            return "📭 尚未上传模组文档或未开始初始化"
+            return _("📭 尚未上传模组文档或未开始初始化")
         elif status == "processing":
-            return "⏳ 模组知识池正在后台初始化中..."
+            return _("⏳ 模组知识池正在后台初始化中...")
         elif status == "ready":
             catalog_data = await store.get(user_key="", store_key=f"module_catalog.{chat_key}")
             catalog = json.loads(catalog_data) if catalog_data else []
-            return f"✅ 模组知识池初始化完成（{len(catalog)} 个分片已分析）"
+            return _('✅ 模组知识池初始化完成（{count} 个分片已分析）').format(count=len(catalog))
         elif isinstance(status, str) and status.startswith("failed"):
             err = status.split(":", 1)[1] if ":" in status else "未知错误"
             return f"❌ 初始化失败: {err}"
@@ -672,7 +673,7 @@ async def query_knowledge_pool(_ctx: AgentCtx, query: str, pool_type: str = "kee
     chat_key = _ctx.chat_key
     try:
         if pool_type not in ("keeper", "player"):
-            return "❌ pool_type 必须是 'keeper' 或 'player'"
+            return _("❌ pool_type 必须是 'keeper' 或 'player'")
 
         store_key = f"module_{pool_type}_pool.{chat_key}"
         pool_data = await store.get(user_key="", store_key=store_key)
@@ -739,7 +740,7 @@ async def inspect_knowledge_pool(_ctx: AgentCtx, pool_type: str = "keeper") -> s
     chat_key = _ctx.chat_key
     try:
         if pool_type not in ("keeper", "player"):
-            return "❌ pool_type 必须是 'keeper' 或 'player'"
+            return _("❌ pool_type 必须是 'keeper' 或 'player'")
 
         store_key = f"module_{pool_type}_pool.{chat_key}"
         pool_data = await store.get(user_key="", store_key=store_key)
@@ -955,7 +956,7 @@ async def unlock_for_player(_ctx: AgentCtx, element_type: str, name: str) -> str
         player_data = await store.get(user_key="", store_key=f"module_player_pool.{chat_key}")
 
         if not keeper_data:
-            return "❌ 没有守秘人知识池"
+            return _("❌ 没有守秘人知识池")
 
         keeper = json.loads(keeper_data)
         player = json.loads(player_data) if player_data else {}
@@ -1009,7 +1010,7 @@ async def unlock_for_player(_ctx: AgentCtx, element_type: str, name: str) -> str
                 "description": target.get("description", ""),
             }
         else:
-            return f"❌ 不支持的元素类型: {element_type}"
+            return _('❌ 不支持的元素类型: {element_type}').format(element_type=element_type)
 
         player.setdefault(element_type, [])
         # 去重：如果已经解锁过，跳过
@@ -1102,7 +1103,7 @@ async def kp_note(_ctx: AgentCtx, action: str, category: str, content: str = "")
             return "\n".join(lines)
 
         else:
-            return f"❌ 不支持的 action: {action}"
+            return _('❌ 不支持的 action: {action}').format(action=action)
     except Exception as e:
         return f"❌ 笔记操作失败: {str(e)}"
 
@@ -1196,9 +1197,9 @@ async def update_character_status(_ctx: AgentCtx, status_effects: str) -> str:
                 await character_manager.sync_party_roster(chat_key, char, status_effects=effects)
         except Exception:
             pass
-        return f"✅ 角色状态已更新: {', '.join(effects)}"
+        return _('✅ 角色状态已更新: {effects}').format(effects=', '.join(effects))
     except Exception as e:
-        return f"❌ 更新状态失败: {str(e)}"
+        return _('❌ 更新状态失败: {error}').format(error=str(e))
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "delete_character", "删除角色卡")
@@ -1210,11 +1211,11 @@ async def delete_character(_ctx: AgentCtx, name: str) -> str:
     try:
         success = await character_manager.delete_character(user_id, chat_key, name)
         if success:
-            return f"✅ 角色卡 \"{name}\" 已删除"
+            return _('✅ 角色卡 "{name}" 已删除').format(name=name)
         else:
-            return f"❌ 删除角色卡 \"{name}\" 失败"
+            return _('❌ 删除角色卡 "{name}" 失败').format(name=name)
     except Exception as e:
-        return f"❌ 删除失败: {str(e)}"
+        return _('❌ 删除失败: {error}').format(error=str(e))
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "switch_character", "切换当前角色卡")
@@ -1226,9 +1227,9 @@ async def switch_character(_ctx: AgentCtx, name: str) -> str:
     try:
         character = await character_manager.get_character(user_id, chat_key, name)
         if character.name == "default" and name != "default":
-            return f"❌ 未找到角色卡 \"{name}\""
+            return _('❌ 未找到角色卡 "{name}"').format(name=name)
         await character_manager.set_active_character(user_id, chat_key, name)
-        return f"✅ 已切换到角色卡: {character.name} ({character.system})"
+        return _('✅ 已切换到角色卡: {name} ({system})').format(name=character.name, system=character.system)
     except Exception as e:
         return f"❌ 切换失败: {str(e)}"
 
@@ -1251,7 +1252,7 @@ async def sanity_check(_ctx: AgentCtx, success_loss: str, failure_loss: str) -> 
     try:
         character = await character_manager.get_character(user_id, chat_key)
         if not character or character.name == "default":
-            return "❌ 当前没有角色卡，请先使用 create_character 创建角色"
+            return _("❌ 当前没有角色卡，请先使用 create_character 创建角色")
 
         if character.system != "CoC":
             return "❌ 理智检定仅支持COC7系统"
@@ -1313,7 +1314,7 @@ async def skill_growth(_ctx: AgentCtx, skill_name: str) -> str:
         skill_value = character.skills.get(target_skill, 0)
 
         if skill_value >= 100:
-            return f"📈 {target_skill} 已满值({skill_value})，无需成长"
+            return f"📈 {t_skill_name(target_skill)} 已满值({skill_value})，无需成长"
 
         # 成长检定：1d100 > 当前技能值则成长
         roll = random.randint(1, 100)
@@ -1325,13 +1326,13 @@ async def skill_growth(_ctx: AgentCtx, skill_name: str) -> str:
             character.skills[target_skill] = new_value
             await character_manager.save_character(user_id, chat_key, character)
             return (
-                f"📈 {character.name} 的 {target_skill} 成长检定\n"
+                f"📈 {character.name} 的 {t_skill_name(target_skill)} 成长检定\n"
                 f"🎲 掷出: {roll} > {old_value} → 成功!\n"
-                f"✨ {target_skill}: {old_value} → {new_value} (+{new_value - old_value})"
+                f"✨ {t_skill_name(target_skill)}: {old_value} → {new_value} (+{new_value - old_value})"
             )
         else:
             return (
-                f"📈 {character.name} 的 {target_skill} 成长检定\n"
+                f"📈 {character.name} 的 {t_skill_name(target_skill)} 成长检定\n"
                 f"🎲 掷出: {roll} ≤ {skill_value} → 未成长"
             )
     except Exception as e:
@@ -1386,23 +1387,25 @@ async def opposed_check(_ctx: AgentCtx, skill1: str, skill2: str, skill1_value: 
         lv2, name2 = get_level(r2, s2)
 
         # 判定胜负
+        disp1 = t_skill_name(skill1)
+        disp2 = t_skill_name(skill2)
         if lv1 > lv2:
-            winner = f"主动方 ({skill1})"
+            winner = f"主动方 ({disp1})"
         elif lv2 > lv1:
-            winner = f"被动方 ({skill2})"
+            winner = f"被动方 ({disp2})"
         else:
             # 平手：技能值高者胜
             if s1 > s2:
-                winner = f"主动方 ({skill1}) - 技能值高"
+                winner = f"主动方 ({disp1}) - 技能值高"
             elif s2 > s1:
-                winner = f"被动方 ({skill2}) - 技能值高"
+                winner = f"被动方 ({disp2}) - 技能值高"
             else:
                 winner = "平局"
 
         return (
-            f"⚔️ 对抗检定: {skill1} vs {skill2}\n"
-            f"🎯 主动方: {skill1}={s1} 掷出{r1} → {name1}\n"
-            f"🎯 被动方: {skill2}={s2} 掷出{r2} → {name2}\n"
+            f"⚔️ 对抗检定: {disp1} vs {disp2}\n"
+            f"🎯 主动方: {disp1}={s1} 掷出{r1} → {name1}\n"
+            f"🎯 被动方: {disp2}={s2} 掷出{r2} → {name2}\n"
             f"🏆 结果: {winner}"
         )
     except Exception as e:
@@ -2039,7 +2042,7 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, arg: Message =
     """基础投骰指令"""
     expression = arg.extract_plain_text().strip()
     if not expression:
-        await finish_with(matcher, "请输入骰子表达式，如: r 3d6+2")
+        await finish_with(matcher, _("请输入骰子表达式，如: r 3d6+2"))
         return
     
     try:
@@ -2049,10 +2052,10 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, arg: Message =
         # 添加特殊效果提示
         is_critical = False
         if result.is_critical_success():
-            response += " ✨ 大成功!"
+            response += _(" ✨ 大成功!")
             is_critical = True
         elif result.is_critical_failure():
-            response += " 💥 大失败!"
+            response += _(" 💥 大失败!")
             is_critical = True
         
         # 确保有活跃的战报会话
@@ -2062,7 +2065,7 @@ async def handle_dice_roll(matcher: Matcher, event: MessageEvent, arg: Message =
         # 记录到战报系统
         try:
             character = await character_manager.get_character(str(event.user_id), chat_key)
-            char_name = character.name if character else "未知角色"
+            char_name = character.name if character else _("未知角色")
             
             await battle_report_manager.add_dice_roll(
                 chat_key,
@@ -2087,14 +2090,14 @@ async def handle_hidden_roll(matcher: Matcher, event: MessageEvent, arg: Message
     """隐藏掷骰指令"""
     expression = arg.extract_plain_text().strip()
     if not expression:
-        await finish_with(matcher, "请输入骰子表达式，如: rh 3d6+2")
+        await finish_with(matcher, _("请输入骰子表达式，如: rh 3d6+2"))
         return
     
     try:
         result = DiceRoller.roll_expression(expression)
         # 由于 NekroAgent 的 message API 没有 send_private 函数，
         # 隐藏掷骰直接在群聊中显示简化结果
-        response = f"🎲 隐藏掷骰: {result.format_result(show_details=False)}"
+        response = _('🎲 隐藏掷骰: {result}').format(result=result.format_result(show_details=False))
         
         await finish_with(matcher, response)
         return
@@ -2112,7 +2115,7 @@ async def handle_advantage_roll(matcher: Matcher, event: MessageEvent, arg: Mess
     
     try:
         result = DiceRoller.roll_advantage(expression)
-        await finish_with(matcher, f"🎲 优势掷骰: {result.format_result()}")
+        await finish_with(matcher, _('🎲 优势掷骰: {result}').format(result=result.format_result()))
     except ValueError as e:
         await finish_with(matcher, f"❌ {str(e)}")
         return
@@ -2127,7 +2130,7 @@ async def handle_disadvantage_roll(matcher: Matcher, event: MessageEvent, arg: M
     
     try:
         result = DiceRoller.roll_disadvantage(expression)
-        await finish_with(matcher, f"🎲 劣势掷骰: {result.format_result()}")
+        await finish_with(matcher, _('🎲 劣势掷骰: {result}').format(result=result.format_result()))
     except ValueError as e:
         await finish_with(matcher, f"❌ {str(e)}")
         return
@@ -2138,7 +2141,7 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, arg: Me
     """角色动作描述"""
     action = arg.extract_plain_text().strip()
     if not action:
-        await finish_with(matcher, "请描述你的角色动作，如: me 仔细观察房间")
+        await finish_with(matcher, _("请描述你的角色动作，如: me 仔细观察房间"))
         return
     
     # 获取角色信息
@@ -2151,7 +2154,7 @@ async def handle_character_action(matcher: Matcher, event: MessageEvent, arg: Me
         character = await character_manager.get_character(str(event.user_id), chat_key)
         char_name = character.name if character else "你"
         
-        response = f"🎭 {char_name} {action}"
+        response = _('🎭 {name} {action}').format(name=char_name, action=action)
         
         # 记录到战报系统
         try:
@@ -2176,7 +2179,7 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, arg: Message
     """技能检定 - 支持奖惩骰"""
     skill_input = arg.extract_plain_text().strip()
     if not skill_input:
-        await finish_with(matcher, "请输入技能名称，如: ra 侦察")
+        await finish_with(matcher, _("请输入技能名称，如: ra 侦察"))
         return
     
     try:
@@ -2231,16 +2234,16 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, arg: Message
         # 执行CoC检定
         if character.system == "CoC":
             result = DiceRoller.roll_coc_check_with_bonus(skill_value, bonus, penalty)
-            response = (f"🎲 {character.name} 进行 {skill_name} 检定\n"
-                       f"🎯 目标值: {skill_value}")
+            response = (_('🎲 {name} 进行 {skill} 检定\n').format(name=character.name, skill=t_skill_name(skill_name))
+                       + _('🎯 目标值: {value}').format(value=skill_value))
             if bonus > 0:
-                response += f" (+{bonus}奖励骰)"
+                response += _(' (+{bonus}奖励骰)').format(bonus=bonus)
             elif penalty > 0:
-                response += f" (-{penalty}惩罚骰)"
+                response += _(' (-{penalty}惩罚骰)').format(penalty=penalty)
             if difficulty != "normal":
                 response += f" [{difficulty}]"
-            response += (f"\n🎲 掷出: {result['final_roll']} (原始{result['roll']})\n"
-                        f"✨ 结果: {result['level']}")
+            response += (_('\n🎲 掷出: {final} (原始{original})\n').format(final=result['final_roll'], original=result['roll'])
+                        + _('✨ 结果: {level}').format(level=result['level']))
             
             # 记录到战报系统
             try:
@@ -2266,9 +2269,9 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, arg: Message
                 level = "大失败"
             else:
                 level = f"{total}"
-            response = (f"🎲 {character.name} 进行 {skill_name} 检定\n"
-                       f"🎯 掷出: {result.total} + 加值{modifier} = {total}\n"
-                       f"✨ 结果: {level}")
+            response = (_('🎲 {name} 进行 {skill} 检定\n').format(name=character.name, skill=t_skill_name(skill_name))
+                       + _('🎯 掷出: {roll} + 加值{modifier} = {total}\n').format(roll=result.total, modifier=modifier, total=total)
+                       + _('✨ 结果: {level}').format(level=level))
         
         await finish_with(matcher, response)
         return
@@ -2284,7 +2287,7 @@ async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, arg: 
     """隐藏技能检定"""
     skill_input = arg.extract_plain_text().strip()
     if not skill_input:
-        await finish_with(matcher, "请输入技能名称，如: rah 侦察")
+        await finish_with(matcher, _("请输入技能名称，如: rah 侦察"))
         return
     
     try:
@@ -2328,11 +2331,11 @@ async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, arg: 
             success = result["success"]
             emoji = "✅" if success else "❌"
             response = (
-                f"🎭 {character.name} 进行 {skill_name} 检定\n"
-                f"🎯 目标值: {skill_value}\n"
-                f"{emoji} 结果: {result['level']}"
+                _('🎭 {name} 进行 {skill} 检定\n').format(name=character.name, skill=t_skill_name(skill_name))
+                + _('🎯 目标值: {value}\n').format(value=skill_value)
+                + _('{emoji} 结果: {level}').format(emoji=emoji, level=result['level'])
             )
-            
+
             # 记录到战报系统
             try:
                 await battle_report_manager.add_skill_check(
@@ -2352,9 +2355,9 @@ async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, arg: 
             success = result.is_critical_success() or (not result.is_critical_failure() and total >= 15)
             emoji = "✅" if success else "❌"
             response = (
-                f"🎭 {character.name} 进行 {skill_name} 检定\n"
-                f"🎯 掷出: {total}\n"
-                f"{emoji} 结果: {'成功' if success else '失败'}"
+                _('🎭 {name} 进行 {skill} 检定\n').format(name=character.name, skill=t_skill_name(skill_name))
+                + _('🎯 掷出: {total}\n').format(total=total)
+                + _('{emoji} 结果: {result}').format(emoji=emoji, result=_('成功') if success else _('失败'))
             )
         
         await finish_with(matcher, response)
@@ -2371,7 +2374,7 @@ async def handle_opposed_check(matcher: Matcher, event: MessageEvent, arg: Messa
     """对抗检定"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: rav <技能1> vs <技能2>\n或: rav <技能1> <数值1> vs <技能2> <数值2>")
+        await finish_with(matcher, _("用法: rav <技能1> vs <技能2>\n或: rav <技能1> <数值1> vs <技能2> <数值2>"))
         return
     
     try:
@@ -2404,7 +2407,7 @@ async def handle_opposed_check(matcher: Matcher, event: MessageEvent, arg: Messa
                 val1 = character.skills.get(s1, 50)
                 val2 = character.skills.get(s2, 50)
             else:
-                await finish_with(matcher, "❌ 格式错误，用法: rav <技能1> vs <技能2>")
+                await finish_with(matcher, _("❌ 格式错误，用法: rav <技能1> vs <技能2>"))
                 return
         
         # 执行对抗检定
@@ -2436,10 +2439,10 @@ async def handle_opposed_check(matcher: Matcher, event: MessageEvent, arg: Messa
                 winner = "平局"
         
         response = (
-            f"⚔️ 对抗检定: {skill1} vs {skill2}\n"
-            f"🎯 主动方: {skill1}={val1} 掷出{r1} → {name1}\n"
-            f"🎯 被动方: {skill2}={val2} 掷出{r2} → {name2}\n"
-            f"🏆 结果: {winner}"
+            _('⚔️ 对抗检定: {skill1} vs {skill2}\n').format(skill1=skill1, skill2=skill2)
+            + _('🎯 主动方: {skill1}={val1} 掷出{roll1} → {name1}\n').format(skill1=skill1, val1=val1, roll1=r1, name1=name1)
+            + _('🎯 被动方: {skill2}={val2} 掷出{roll2} → {name2}\n').format(skill2=skill2, val2=val2, roll2=r2, name2=name2)
+            + _('🏆 结果: {winner}').format(winner=winner)
         )
         await finish_with(matcher, response)
         return
@@ -2464,28 +2467,28 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
         try:
             character = await character_manager.get_character(user_id, chat_key)
             
-            response = f"📋 角色卡: {character.name}\n"
-            response += f"🎮 系统: {character.system}\n"
+            response = _('📋 角色卡: {name}\n').format(name=character.name)
+            response += _('🎮 系统: {system}\n').format(system=character.system)
             
             if character.system == "CoC":
                 attrs = ["STR", "CON", "SIZ", "DEX", "APP", "INT", "POW", "EDU", "LUC"]
                 attr_strs = []
                 for attr in attrs:
                     if attr in character.attributes:
-                        attr_strs.append(f"{attr}:{character.attributes[attr]}")
-                response += f"📊 属性: {' '.join(attr_strs)}\n"
-                response += f"❤️ HP:{character.attributes.get('HP', '?')}/{character.attributes.get('HPMAX', '?')} "
-                response += f"🧠 SAN:{character.attributes.get('SAN', '?')}/{character.attributes.get('SANMAX', '?')}\n"
-                
+                        attr_strs.append(f"{t_attribute_name(attr)}:{character.attributes[attr]}")
+                response += _('📊 属性: {attrs}\n').format(attrs=' '.join(attr_strs))
+                response += _('❤️ HP:{hp}/{hpmax} ').format(hp=character.attributes.get('HP', '?'), hpmax=character.attributes.get('HPMAX', '?'))
+                response += _('🧠 SAN:{san}/{sanmax}\n').format(san=character.attributes.get('SAN', '?'), sanmax=character.attributes.get('SANMAX', '?'))
+
                 if character.skills:
                     sorted_skills = sorted(character.skills.items(), key=lambda x: x[1], reverse=True)
-                    skill_strs = [f"{k}:{v}" for k, v in sorted_skills[:10]]
-                    response += f"🔧 技能: {' '.join(skill_strs)}"
+                    skill_strs = [f"{t_skill_name(k)}:{v}" for k, v in sorted_skills[:10]]
+                    response += _('🔧 技能: {skills}').format(skills=' '.join(skill_strs))
                     if len(sorted_skills) > 10:
                         response += " ..."
             else:
                 for k, v in character.attributes.items():
-                    response += f"{k}:{v} "
+                    response += f"{t_attribute_name(k)}:{v} "
                 response += "\n"
             
             await finish_with(matcher, response)
@@ -2498,20 +2501,20 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
     elif command.startswith("new "):
         char_name = command[4:].strip()
         if not char_name:
-            await finish_with(matcher, "请指定角色名称")
+            await finish_with(matcher, _("请指定角色名称"))
             return
         
         import re
         char_name = re.sub(r'[<>\[\]{}]', '', char_name).strip()
         
         if not char_name:
-            await finish_with(matcher, "角色名称不能为空或只包含特殊字符")
+            await finish_with(matcher, _("角色名称不能为空或只包含特殊字符"))
             return
         
         try:
             character = CharacterSheet(name=char_name)
             await character_manager.save_character(user_id, chat_key, character)
-            await finish_with(matcher, f"✅ 已创建角色: {char_name}")
+            await finish_with(matcher, _('✅ 已创建角色: {name}').format(name=char_name))
         except MatcherException:
             raise
         except Exception as save_error:
@@ -2523,10 +2526,10 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
         try:
             character = await character_manager.get_character(user_id, chat_key, char_name)
             if character.name == "default" and char_name != "default":
-                await finish_with(matcher, f"❌ 未找到角色卡: {char_name}")
+                await finish_with(matcher, _('❌ 未找到角色卡: {name}').format(name=char_name))
                 return
             await character_manager.set_active_character(user_id, chat_key, char_name)
-            await finish_with(matcher, f"✅ 已切换到: {character.name}")
+            await finish_with(matcher, _('✅ 已切换到: {name}').format(name=character.name))
         except Exception as e:
             await finish_with(matcher, f"❌ 切换失败: {str(e)}")
         return
@@ -2535,9 +2538,9 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
         try:
             characters = await character_manager.list_characters(user_id, chat_key)
             if not characters:
-                await finish_with(matcher, "📄 当前没有角色卡")
+                await finish_with(matcher, _("📄 当前没有角色卡"))
                 return
-            response = "📋 角色卡列表:\n"
+            response = _("📋 角色卡列表:\n")
             for i, char in enumerate(characters, 1):
                 response += f"{i}. {char['name']} ({char['system']})\n"
             await finish_with(matcher, response)
@@ -2549,7 +2552,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
         try:
             character = CharacterSheet(name="default")
             await character_manager.save_character(user_id, chat_key, character)
-            await finish_with(matcher, "✅ 角色卡已清空")
+            await finish_with(matcher, _("✅ 角色卡已清空"))
         except Exception as e:
             await finish_with(matcher, f"❌ 清空失败: {str(e)}")
         return
@@ -2561,13 +2564,13 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
             if attr_name in character.skills:
                 del character.skills[attr_name]
                 await character_manager.save_character(user_id, chat_key, character)
-                await finish_with(matcher, f"✅ 已删除技能: {attr_name}")
+                await finish_with(matcher, _('✅ 已删除技能: {name}').format(name=attr_name))
             elif attr_name in character.attributes:
                 del character.attributes[attr_name]
                 await character_manager.save_character(user_id, chat_key, character)
-                await finish_with(matcher, f"✅ 已删除属性: {attr_name}")
+                await finish_with(matcher, _('✅ 已删除属性: {name}').format(name=attr_name))
             else:
-                await finish_with(matcher, f"❌ 未找到: {attr_name}")
+                await finish_with(matcher, _('❌ 未找到: {name}').format(name=attr_name))
         except Exception as e:
             await finish_with(matcher, f"❌ 删除失败: {str(e)}")
         return
@@ -2576,14 +2579,14 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
         template_name = command[5:].strip().lower()
         
         if template_name not in ["coc7", "dnd5e"]:
-            await finish_with(matcher, "❌ 支持的模板: coc7, dnd5e")
+            await finish_with(matcher, _("❌ 支持的模板: coc7, dnd5e"))
             return
         
         character = await character_manager.get_character(user_id, chat_key)
         character.system = "CoC" if template_name == "coc7" else "DnD5e"
         
         await character_manager.save_character(user_id, chat_key, character)
-        await finish_with(matcher, f"✅ 已切换到 {template_name} 模板")
+        await finish_with(matcher, _('✅ 已切换到 {template} 模板').format(template=template_name))
         return
     
     elif command == "init":
@@ -2593,7 +2596,7 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
         new_character = character_manager.generate_character(template_name, character.name)
         
         await character_manager.save_character(user_id, chat_key, new_character)
-        await finish_with(matcher, f"✅ 已自动生成角色属性: {new_character.name}")
+        await finish_with(matcher, _('✅ 已自动生成角色属性: {name}').format(name=new_character.name))
         return
     
     elif "=" in command or " " in command:
@@ -2638,14 +2641,14 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
                             character.attributes["HP"] = (con + siz) // 10
                 
                 await character_manager.save_character(user_id, chat_key, character)
-                await finish_with(matcher, f"✅ 已设置 {attr_name} = {new_val}")
+                await finish_with(matcher, _('✅ 已设置 {attr} = {val}').format(attr=attr_name, val=new_val))
                 return
         except Exception as e:
             await finish_with(matcher, f"❌ 设置失败: {str(e)}")
             return
             
     else:
-        await finish_with(matcher, "用法: st [show/new <名称>/set <名称>/list/clr/del <属性>/temp <模板>/init/<属性> <值>]")
+        await finish_with(matcher, _("用法: st [show/new <名称>/set <名称>/list/clr/del <属性>/temp <模板>/init/<属性> <值>]"))
         return
 
 
@@ -2656,7 +2659,7 @@ async def handle_coc_direct_check(matcher: Matcher, event: MessageEvent, arg: Me
     """直接CoC技能检定（无需角色卡）"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: coc <技能值> [困难/极难]\n例如: coc 65 / coc 75 困难")
+        await finish_with(matcher, _("用法: coc <技能值> [困难/极难]\n例如: coc 65 / coc 75 困难"))
         return
     
     try:
@@ -2681,12 +2684,12 @@ async def handle_coc_direct_check(matcher: Matcher, event: MessageEvent, arg: Me
         
         result = DiceRoller.roll_coc_check(target_value)
         
-        response = f"🎲 CoC检定 (技能值: {skill_value})"
+        response = _('🎲 CoC检定 (技能值: {value})').format(value=skill_value)
         if difficulty != "normal":
             response += f" [{difficulty}]"
         response += (
-            f"\n🎯 掷出: {result['roll']} (目标值: {target_value})\n"
-            f"✨ 结果: {result['level']}"
+            _('\n🎯 掷出: {roll} (目标值: {target})\n').format(roll=result['roll'], target=target_value)
+            + _('✨ 结果: {level}').format(level=result['level'])
         )
         
         await finish_with(matcher, response)
@@ -2738,21 +2741,21 @@ async def handle_madness(matcher: Matcher, event: MessageEvent, arg: Message = C
     
     if content in ["临时", "临时疯狂", "temp", "temporary", "ti"]:
         symptom = random.choice(temp_symptoms)
-        await finish_with(matcher, f"🌀 临时疯狂症状:\n{symptom}")
+        await finish_with(matcher, _('🌀 临时疯狂症状:\n{symptom}').format(symptom=symptom))
     elif content in ["总结", "总结疯狂", "总结性", "long", "li"]:
         symptom = random.choice(long_symptoms)
-        await finish_with(matcher, f"🌀 总结疯狂症状:\n{symptom}")
+        await finish_with(matcher, _('🌀 总结疯狂症状:\n{symptom}').format(symptom=symptom))
     elif content in ["不定", "不定疯狂", "不定性", "indefinite"]:
         symptom = random.choice(indefinite_symptoms)
-        await finish_with(matcher, f"🌀 不定疯狂症状:\n{symptom}")
+        await finish_with(matcher, _('🌀 不定疯狂症状:\n{symptom}').format(symptom=symptom))
     else:
         # 默认随机选择临时或总结
         if random.choice([True, False]):
             symptom = random.choice(temp_symptoms)
-            await finish_with(matcher, f"🌀 临时疯狂症状:\n{symptom}")
+            await finish_with(matcher, _('🌀 临时疯狂症状:\n{symptom}').format(symptom=symptom))
         else:
             symptom = random.choice(long_symptoms)
-            await finish_with(matcher, f"🌀 总结疯狂症状:\n{symptom}")
+            await finish_with(matcher, _('🌀 总结疯狂症状:\n{symptom}').format(symptom=symptom))
 
 
 @on_command("sc", priority=5, block=True).handle()
@@ -2760,7 +2763,7 @@ async def handle_sanity_check(matcher: Matcher, event: MessageEvent, arg: Messag
     """理智检定"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: sc <成功损失>/<失败损失> [当前SAN]")
+        await finish_with(matcher, _("用法: sc <成功损失>/<失败损失> [当前SAN]"))
         return
     
     try:
@@ -2772,7 +2775,7 @@ async def handle_sanity_check(matcher: Matcher, event: MessageEvent, arg: Messag
         parts = content.split()
         loss_expr = parts[0]
         if "/" not in loss_expr:
-            await finish_with(matcher, "用法: sc <成功损失>/<失败损失>")
+            await finish_with(matcher, _("用法: sc <成功损失>/<失败损失>"))
             return
         
         success_loss_str, failure_loss_str = loss_expr.split("/", 1)
@@ -2801,11 +2804,11 @@ async def handle_sanity_check(matcher: Matcher, event: MessageEvent, arg: Messag
         
         emoji = "😰" if result["success"] else "🤯"
         response = (
-            f"{emoji} {character.name} 理智检定\n"
-            f"🎯 当前SAN: {san_value} 掷出: {result['roll']}\n"
-            f"📊 结果: {result['level']}\n"
-            f"💔 理智损失: {loss}\n"
-            f"🧠 剩余SAN: {new_san}"
+            _('{emoji} {name} 理智检定\n').format(emoji=emoji, name=character.name)
+            + _('🎯 当前SAN: {san} 掷出: {roll}\n').format(san=san_value, roll=result['roll'])
+            + _('📊 结果: {level}\n').format(level=result['level'])
+            + _('💔 理智损失: {loss}\n').format(loss=loss)
+            + _('🧠 剩余SAN: {san}').format(san=new_san)
         )
         await finish_with(matcher, response)
     except Exception as e:
@@ -2817,7 +2820,7 @@ async def handle_skill_growth(matcher: Matcher, event: MessageEvent, arg: Messag
     """技能成长检定"""
     skill_input = arg.extract_plain_text().strip()
     if not skill_input:
-        await finish_with(matcher, "用法: en <技能名>")
+        await finish_with(matcher, _("用法: en <技能名>"))
         return
     
     try:
@@ -2832,7 +2835,7 @@ async def handle_skill_growth(matcher: Matcher, event: MessageEvent, arg: Messag
         skill_value = character.skills.get(skill_name, 0)
         
         if skill_value >= 100:
-            await finish_with(matcher, f"📈 {skill_name} 已满值({skill_value})")
+            await finish_with(matcher, f"📈 {t_skill_name(skill_name)} 已满值({skill_value})")
             return
         
         roll = random.randint(1, 100)
@@ -2841,14 +2844,14 @@ async def handle_skill_growth(matcher: Matcher, event: MessageEvent, arg: Messag
             new_value = min(100, skill_value + growth)
             character.skills[skill_name] = new_value
             await character_manager.save_character(user_id, chat_key, character)
-            await finish_with(matcher, 
-                f"📈 {character.name} 的 {skill_name} 成长检定\n"
-                f"🎲 掷出: {roll} > {skill_value} → 成功!\n"
-                f"✨ {skill_name}: {skill_value} → {new_value} (+{new_value - skill_value})")
+            await finish_with(matcher,
+                _('📈 {name} 的 {skill} 成长检定\n').format(name=character.name, skill=t_skill_name(skill_name))
+                + _('🎲 掷出: {roll} > {value} → 成功!\n').format(roll=roll, value=skill_value)
+                + _('✨ {skill}: {old} → {new} (+{delta})').format(skill=t_skill_name(skill_name), old=skill_value, new=new_value, delta=new_value - skill_value))
         else:
-            await finish_with(matcher, 
-                f"📈 {character.name} 的 {skill_name} 成长检定\n"
-                f"🎲 掷出: {roll} ≤ {skill_value} → 未成长")
+            await finish_with(matcher,
+                _('📈 {name} 的 {skill} 成长检定\n').format(name=character.name, skill=t_skill_name(skill_name))
+                + _('🎲 掷出: {roll} ≤ {value} → 未成长').format(roll=roll, value=skill_value))
     except Exception as e:
         await finish_with(matcher, f"❌ 成长检定失败: {str(e)}")
 
@@ -2867,7 +2870,7 @@ async def handle_temp_madness(matcher: Matcher, event: MessageEvent):
         "歇斯底里：调查员表现出大笑、哭泣、嘶吼、害怕等极端情绪反应。"
     ]
     symptom = random.choice(symptoms)
-    await finish_with(matcher, f"🌀 临时疯狂症状:\n{symptom}")
+    await finish_with(matcher, _('🌀 临时疯狂症状:\n{symptom}').format(symptom=symptom))
 
 
 @on_command("li", priority=5, block=True).handle()
@@ -2884,7 +2887,7 @@ async def handle_long_madness(matcher: Matcher, event: MessageEvent):
         "创伤后应激障碍：调查员因恐怖经历而产生持续的心理创伤。"
     ]
     symptom = random.choice(symptoms)
-    await finish_with(matcher, f"🌀 总结疯狂症状:\n{symptom}")
+    await finish_with(matcher, _('🌀 总结疯狂症状:\n{symptom}').format(symptom=symptom))
 
 
 @on_command("cocchar", aliases={"coc"}, priority=5, block=True).handle()
@@ -2899,13 +2902,15 @@ async def handle_coc_char_gen(matcher: Matcher, event: MessageEvent, arg: Messag
         
         attrs = character.attributes
         response = (
-            f"✅ CoC7角色 \"{name}\" 生成成功!\n"
-            f"📊 STR:{attrs.get('STR')} CON:{attrs.get('CON')} SIZ:{attrs.get('SIZ')} "
-            f"DEX:{attrs.get('DEX')} APP:{attrs.get('APP')} INT:{attrs.get('INT')} "
-            f"POW:{attrs.get('POW')} EDU:{attrs.get('EDU')} LUC:{attrs.get('LUC')}\n"
-            f"❤️ HP:{attrs.get('HP')}/{attrs.get('HPMAX')} "
-            f"🧠 SAN:{attrs.get('SAN')}/{attrs.get('SANMAX')} "
-            f"✨ MP:{attrs.get('MP')}/{attrs.get('MPMAX')}"
+            _('✅ CoC7角色 "{name}" 生成成功!\n').format(name=name)
+            + _('📊 STR:{STR} CON:{CON} SIZ:{SIZ} DEX:{DEX} APP:{APP} INT:{INT} POW:{POW} EDU:{EDU} LUC:{LUC}\n').format(
+                STR=attrs.get('STR'), CON=attrs.get('CON'), SIZ=attrs.get('SIZ'),
+                DEX=attrs.get('DEX'), APP=attrs.get('APP'), INT=attrs.get('INT'),
+                POW=attrs.get('POW'), EDU=attrs.get('EDU'), LUC=attrs.get('LUC'))
+            + _('❤️ HP:{HP}/{HPMAX} 🧠 SAN:{SAN}/{SANMAX} ✨ MP:{MP}/{MPMAX}').format(
+                HP=attrs.get('HP'), HPMAX=attrs.get('HPMAX'),
+                SAN=attrs.get('SAN'), SANMAX=attrs.get('SANMAX'),
+                MP=attrs.get('MP'), MPMAX=attrs.get('MPMAX'))
         )
         await finish_with(matcher, response)
     except Exception as e:
@@ -2924,9 +2929,10 @@ async def handle_dnd_char_gen(matcher: Matcher, event: MessageEvent, arg: Messag
         
         attrs = character.attributes
         response = (
-            f"✅ DND5E角色 \"{name}\" 生成成功!\n"
-            f"📊 STR:{attrs.get('STR')} DEX:{attrs.get('DEX')} CON:{attrs.get('CON')} "
-            f"INT:{attrs.get('INT')} WIS:{attrs.get('WIS')} CHA:{attrs.get('CHA')}"
+            _('✅ DND5E角色 "{name}" 生成成功!\n').format(name=name)
+            + _('📊 STR:{STR} DEX:{DEX} CON:{CON} INT:{INT} WIS:{WIS} CHA:{CHA}').format(
+                STR=attrs.get('STR'), DEX=attrs.get('DEX'), CON=attrs.get('CON'),
+                INT=attrs.get('INT'), WIS=attrs.get('WIS'), CHA=attrs.get('CHA'))
         )
         await finish_with(matcher, response)
     except Exception as e:
@@ -2938,7 +2944,7 @@ async def handle_dnd_check(matcher: Matcher, event: MessageEvent, arg: Message =
     """DND5E能力检定"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: check <属性/技能> [DC] [熟练]\n例如: check 察觉 / check 力量 15 熟练")
+        await finish_with(matcher, _("用法: check <属性/技能> [DC] [熟练]\n例如: check 察觉 / check 力量 15 熟练"))
         return
     
     try:
@@ -2980,12 +2986,12 @@ async def handle_dnd_check(matcher: Matcher, event: MessageEvent, arg: Message =
             success = total >= dc
             level = "成功" if success else "失败"
         
-        prof_label = "(熟练)" if proficient else ""
+        prof_label = _("(熟练)") if proficient else ""
         emoji = "✨" if success else "❌"
         response = (
-            f"🎲 {character.name} 进行 {target_skill} 检定 {prof_label}\n"
-            f"🎯 掷出: {result.total} + 加值{modifier} = {total} vs DC {dc}\n"
-            f"{emoji} 结果: {level}"
+            _('🎲 {name} 进行 {skill} 检定 {prof}\n').format(name=character.name, skill=t_skill_name(target_skill), prof=prof_label)
+            + _('🎯 掷出: {roll} + 加值{modifier} = {total} vs DC {dc}\n').format(roll=result.total, modifier=modifier, total=total, dc=dc)
+            + _('{emoji} 结果: {level}').format(emoji=emoji, level=level)
         )
         
         await finish_with(matcher, response)
@@ -3002,7 +3008,7 @@ async def handle_dnd_save(matcher: Matcher, event: MessageEvent, arg: Message = 
     """DND5E豁免检定"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: save <属性> [DC] [熟练]\n例如: save 体质 / save 智力 15 熟练")
+        await finish_with(matcher, _("用法: save <属性> [DC] [熟练]\n例如: save 体质 / save 智力 15 熟练"))
         return
     
     try:
@@ -3044,12 +3050,12 @@ async def handle_dnd_save(matcher: Matcher, event: MessageEvent, arg: Message = 
             success = total >= dc
             level = "成功" if success else "失败"
         
-        prof_label = "(熟练)" if proficient else ""
+        prof_label = _("(熟练)") if proficient else ""
         emoji = "✨" if success else "❌"
         response = (
-            f"🎲 {character.name} 进行 {ability} 豁免检定 {prof_label}\n"
-            f"🎯 掷出: {result.total} + 加值{modifier} = {total} vs DC {dc}\n"
-            f"{emoji} 结果: {level}"
+            _('🎲 {name} 进行 {ability} 豁免检定 {prof}\n').format(name=character.name, ability=t_attribute_name(ability), prof=prof_label)
+            + _('🎯 掷出: {roll} + 加值{modifier} = {total} vs DC {dc}\n').format(roll=result.total, modifier=modifier, total=total, dc=dc)
+            + _('{emoji} 结果: {level}').format(emoji=emoji, level=level)
         )
         
         await finish_with(matcher, response)
@@ -3127,9 +3133,9 @@ async def handle_initiative_roll(matcher: Matcher, event: MessageEvent, arg: Mes
         init_list.sort(key=lambda x: x["init"], reverse=True)
         await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
         
-        response = f"⚔️ {char_name} 先攻: {init_val}{adv_label}"
+        response = _('⚔️ {name} 先攻: {init}{adv}').format(name=char_name, init=init_val, adv=adv_label)
         if modifier != 0:
-            response += f" (d20:{result.total} {'+' if modifier >= 0 else ''}{modifier})"
+            response += _(' (d20:{roll} {sign}{mod})').format(roll=result.total, sign='+' if modifier >= 0 else '', mod=modifier)
         
         await finish_with(matcher, response)
         return
@@ -3162,9 +3168,9 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, arg: Message 
         
         if clean_command == "list" or clean_command == "":
             if not init_list:
-                await finish_with(matcher, "📋 先攻列表为空")
+                await finish_with(matcher, _("📋 先攻列表为空"))
                 return
-            response = "⚔️ 先攻顺序:\n"
+            response = _("⚔️ 先攻顺序:\n")
             for i, entry in enumerate(init_list, 1):
                 adv_mark = "🎲" if entry.get('advantage') else ""
                 dis_mark = "💀" if entry.get('disadvantage') else ""
@@ -3174,24 +3180,24 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, arg: Message 
         
         elif clean_command == "clear":
             await store.set(user_key="", store_key=store_key, value="[]")
-            await finish_with(matcher, "✅ 先攻列表已清空")
+            await finish_with(matcher, _("✅ 先攻列表已清空"))
             return
         
         elif clean_command == "next":
             if not init_list:
-                await finish_with(matcher, "📋 先攻列表为空")
+                await finish_with(matcher, _("📋 先攻列表为空"))
                 return
             current = init_list.pop(0)
             init_list.append(current)
             await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
-            await finish_with(matcher, f"➡️ 当前回合: {current['name']}")
+            await finish_with(matcher, _('➡️ 当前回合: {name}').format(name=current['name']))
             return
         
         elif clean_command.startswith("+"):
             # 添加角色到先攻
             char_name = clean_command[1:].strip()
             if not char_name:
-                char_name = "未知"
+                char_name = _("未知")
             
             character = await character_manager.get_character(user_id, chat_key)
             
@@ -3219,8 +3225,8 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, arg: Message 
             init_list.sort(key=lambda x: x["init"], reverse=True)
             await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             
-            adv_text = " (优势)" if advantage else " (劣势)" if disadvantage else ""
-            await finish_with(matcher, f"✅ {char_name} 先攻: {init_val}{adv_text}")
+            adv_text = _(" (优势)") if advantage else _(" (劣势)") if disadvantage else ""
+            await finish_with(matcher, _('✅ {name} 先攻: {init}{adv}').format(name=char_name, init=init_val, adv=adv_text))
             return
         
         else:
@@ -3250,8 +3256,8 @@ async def handle_initiative(matcher: Matcher, event: MessageEvent, arg: Message 
             init_list.sort(key=lambda x: x["init"], reverse=True)
             await store.set(user_key="", store_key=store_key, value=json.dumps(init_list))
             
-            adv_text = " (优势)" if advantage else " (劣势)" if disadvantage else ""
-            await finish_with(matcher, f"✅ {character.name} 先攻: {init_val}{adv_text}")
+            adv_text = _(" (优势)") if advantage else _(" (劣势)") if disadvantage else ""
+            await finish_with(matcher, _('✅ {name} 先攻: {init}{adv}').format(name=character.name, init=init_val, adv=adv_text))
             return
     except Exception as e:
         await finish_with(matcher, f"❌ 先攻管理失败: {str(e)}")
@@ -3274,7 +3280,7 @@ async def handle_hp(matcher: Matcher, event: MessageEvent, arg: Message = Comman
             hp_max = hp
         
         if not command:
-            await finish_with(matcher, f"❤️ {character.name} HP: {hp}/{hp_max}")
+            await finish_with(matcher, _('❤️ {name} HP: {hp}/{hp_max}').format(name=character.name, hp=hp, hp_max=hp_max))
             return
         
         if command.startswith("+"):
@@ -3308,7 +3314,7 @@ async def handle_wod_roll(matcher: Matcher, event: MessageEvent, arg: Message = 
     """WoD骰池"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: wod <骰池大小> [困难度]")
+        await finish_with(matcher, _("用法: wod <骰池大小> [困难度]"))
         return
     
     try:
@@ -3320,17 +3326,17 @@ async def handle_wod_roll(matcher: Matcher, event: MessageEvent, arg: Message = 
         rolls_str = ", ".join(map(str, result["rolls"]))
         
         if result["botch"]:
-            level = "💀 大失败"
+            level = _("💀 大失败")
         elif result["successes"] == 0:
-            level = "❌ 失败"
+            level = _("❌ 失败")
         else:
-            level = f"✨ {result['successes']}成功"
+            level = _('✨ {count}成功').format(count=result['successes'])
         
         response = (
-            f"🎲 WoD骰池: {pool_size}d10 (困难度{difficulty})\n"
-            f"🎲 结果: [{rolls_str}]\n"
-            f"📊 成功数: {result['successes']}\n"
-            f"{level}"
+            _('🎲 WoD骰池: {pool}d10 (困难度{difficulty})\n').format(pool=pool_size, difficulty=difficulty)
+            + _('🎲 结果: [{rolls}]\n').format(rolls=rolls_str)
+            + _('📊 成功数: {count}\n').format(count=result['successes'])
+            + level
         )
         await finish_with(matcher, response)
     except Exception as e:
@@ -3357,7 +3363,7 @@ async def handle_fate_roll(matcher: Matcher, event: MessageEvent, arg: Message =
         result = DiceRoller.roll_fate(dice_count, modifier)
         rolls_str = " ".join(["-" if r == -1 else "0" if r == 0 else "+" for r in result.rolls])
         
-        await finish_with(matcher, f"🎲 Fate骰子: [{rolls_str}] = {result.total}")
+        await finish_with(matcher, _('🎲 Fate骰子: [{rolls}] = {total}').format(rolls=rolls_str, total=result.total))
     except Exception as e:
         await finish_with(matcher, f"❌ Fate骰子失败: {str(e)}")
 
@@ -3367,12 +3373,12 @@ async def handle_explode_roll(matcher: Matcher, event: MessageEvent, arg: Messag
     """爆炸骰"""
     expression = arg.extract_plain_text().strip()
     if not expression:
-        await finish_with(matcher, "用法: explode <表达式> (如 explode d10)")
+        await finish_with(matcher, _("用法: explode <表达式> (如 explode d10)"))
         return
     
     try:
         result = DiceRoller.roll_explode(expression)
-        await finish_with(matcher, f"🎲 爆炸骰: {result.format_result()}")
+        await finish_with(matcher, _('🎲 爆炸骰: {result}').format(result=result.format_result()))
     except Exception as e:
         await finish_with(matcher, f"❌ 爆炸骰失败: {str(e)}")
 
@@ -3382,24 +3388,24 @@ async def handle_repeat_roll(matcher: Matcher, event: MessageEvent, arg: Message
     """多次掷骰"""
     content = arg.extract_plain_text().strip()
     if not content:
-        await finish_with(matcher, "用法: repeat <次数> <表达式> (如 repeat 3 d6)")
+        await finish_with(matcher, _("用法: repeat <次数> <表达式> (如 repeat 3 d6)"))
         return
     
     try:
         parts = content.split(maxsplit=1)
         if len(parts) < 2:
-            await finish_with(matcher, "用法: repeat <次数> <表达式>")
+            await finish_with(matcher, _("用法: repeat <次数> <表达式>"))
             return
         
         times = int(parts[0])
         expression = parts[1]
         
         if times <= 0 or times > 20:
-            await finish_with(matcher, "次数必须在1-20之间")
+            await finish_with(matcher, _("次数必须在1-20之间"))
             return
         
         results = DiceRoller.roll_repeat(expression, times)
-        response = f"🎲 重复掷骰 {times}次 {expression}:\n"
+        response = _('🎲 重复掷骰 {times}次 {expr}:\n').format(times=times, expr=expression)
         for i, result in enumerate(results, 1):
             response += f"  第{i}次: {result.format_result()}\n"
         
@@ -3436,7 +3442,7 @@ async def handle_random_name(matcher: Matcher, event: MessageEvent, arg: Message
     is_female = "女" in content or "female" in content
     
     results = []
-    for _ in range(count):
+    for _i in range(count):
         if is_en:
             last = random.choice(en_last)
             if is_male:
@@ -3456,7 +3462,7 @@ async def handle_random_name(matcher: Matcher, event: MessageEvent, arg: Message
                 name = random.choice(names_male + names_female)
             results.append(f"{surname}{name}")
     
-    response = "🎲 随机姓名:\n" + "\n".join(results)
+    response = _("🎲 随机姓名:\n") + "\n".join(results)
     await finish_with(matcher, response)
 
 
@@ -3475,7 +3481,7 @@ async def handle_draw_card(matcher: Matcher, event: MessageEvent, arg: Message =
     deck = [f"{s}{r}" for s in suits for r in ranks]
     
     drawn = random.sample(deck, min(count, len(deck)))
-    response = f"🃏 抽卡结果 ({count}张):\n" + " ".join(drawn)
+    response = _('🃏 抽卡结果 ({count}张):\n').format(count=count) + " ".join(drawn)
     await finish_with(matcher, response)
 
 
@@ -3485,7 +3491,7 @@ async def handle_draw_card(matcher: Matcher, event: MessageEvent, arg: Message =
 async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """文档系统帮助"""
     if not config.ENABLE_VECTOR_DB:
-        await finish_with(matcher, "❌ 文档功能未启用")
+        await finish_with(matcher, _("❌ 文档功能未启用"))
         return
     
     command = arg.extract_plain_text().strip()
@@ -3496,10 +3502,10 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Messa
             documents = await vector_db.list_documents(str(getattr(event, "group_id", None) or event.user_id))
             
             if not documents:
-                await finish_with(matcher, "📄 暂无已上传的文档")
+                await finish_with(matcher, _("📄 暂无已上传的文档"))
                 return
             
-            response = "📚 已上传的文档:\n"
+            response = _("📚 已上传的文档:\n")
             for i, doc in enumerate(documents, 1):
                 doc_emoji = {"module": "📘", "rule": "📜", "story": "📖", "background": "🌍"}.get(doc["document_type"], "📄")
                 response += f"{i}. {doc_emoji} {doc['filename']} ({doc['document_type']})\n"
@@ -3517,7 +3523,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Messa
         # 搜索文档
         query = command[7:].strip()
         if not query:
-            await finish_with(matcher, "请输入搜索关键词")
+            await finish_with(matcher, _("请输入搜索关键词"))
             return
         
         try:
@@ -3528,7 +3534,7 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Messa
             )
             
             if not results:
-                await finish_with(matcher, "🔍 未找到相关内容")
+                await finish_with(matcher, _("🔍 未找到相关内容"))
                 return
             
             response = f"🔍 搜索 \"{query}\" 的结果:\n"
@@ -3579,14 +3585,14 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Messa
 async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """上传文本文档"""
     if not config.ENABLE_VECTOR_DB:
-        await finish_with(matcher, "❌ 文档功能未启用")
+        await finish_with(matcher, _("❌ 文档功能未启用"))
         return
     
     content = arg.extract_plain_text().strip()
     parts = content.split(' ', 2)
     
     if len(parts) < 3:
-        await finish_with(matcher, "用法: doc_text <类型> <文档名> <内容>\n类型: module/rule/story/background")
+        await finish_with(matcher, _("用法: doc_text <类型> <文档名> <内容>\n类型: module/rule/story/background"))
         return
     
     doc_type = parts[0].lower()
@@ -3594,7 +3600,7 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
     text_content = parts[2]
     
     if doc_type not in ["module", "rule", "story", "background"]:
-        await finish_with(matcher, "❌ 文档类型必须是: module/rule/story/background")
+        await finish_with(matcher, _("❌ 文档类型必须是: module/rule/story/background"))
         return
     
     try:
@@ -3627,12 +3633,12 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
 async def handle_document_qa(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     """智能文档问答"""
     if not config.ENABLE_VECTOR_DB:
-        await finish_with(matcher, "❌ 文档功能未启用")
+        await finish_with(matcher, _("❌ 文档功能未启用"))
         return
     
     question = arg.extract_plain_text().strip()
     if not question:
-        await finish_with(matcher, "请输入你的问题")
+        await finish_with(matcher, _("请输入你的问题"))
         return
     
     try:
@@ -3641,7 +3647,7 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, arg: Message
             chat_key=str(getattr(event, "group_id", None) or event.user_id)
         )
         
-        await finish_with(matcher, f"🤖 AI回答:\n{answer}")
+        await finish_with(matcher, _('🤖 AI回答:\n{answer}').format(answer=answer))
         return
     except MatcherException:
         raise
@@ -3680,15 +3686,15 @@ async def handle_daily_luck(matcher: Matcher, event: MessageEvent):
         luck_value = await character_manager.get_daily_luck(str(event.user_id))
         
         if luck_value >= 90:
-            level = "超级欧皇"
+            level = _("超级欧皇")
         elif luck_value >= 70:
-            level = "欧洲人"
+            level = _("欧洲人")
         elif luck_value >= 30:
-            level = "平民"
+            level = _("平民")
         else:
-            level = "非洲人"
+            level = _("非洲人")
         
-        await finish_with(matcher, f"🍀 今日人品值: {luck_value} ({level})")
+        await finish_with(matcher, _('🍀 今日人品值: {value} ({level})').format(value=luck_value, level=level))
     except MatcherException:
         raise
     except Exception as e:
@@ -3803,7 +3809,7 @@ async def handle_session(matcher: Matcher, event: MessageEvent, arg: Message = C
             text_report, markdown_report, session_name = await battle_report_manager.generate_battle_report(chat_key)
             
             if not text_report:
-                await finish_with(matcher, "❌ 没有正在进行的跑团会话")
+                await finish_with(matcher, _("❌ 没有正在进行的跑团会话"))
                 return
             
             # 保存Markdown文档到存储
@@ -3829,13 +3835,13 @@ async def handle_session(matcher: Matcher, event: MessageEvent, arg: Message = C
         # 记录关键事件
         parts = command.split(maxsplit=1)
         if len(parts) < 2:
-            await finish_with(matcher, "请输入事件描述，如: session event 发现了神秘的地下入口")
+            await finish_with(matcher, _("请输入事件描述，如: session event 发现了神秘的地下入口"))
             return
         
         description = parts[1]
         try:
             await battle_report_manager.add_key_event(chat_key, description)
-            await finish_with(matcher, f"✅ 已记录关键事件: {description}")
+            await finish_with(matcher, _('✅ 已记录关键事件: {desc}').format(desc=description))
         except Exception as e:
             await finish_with(matcher, f"❌ 记录事件失败: {str(e)}")
         return
