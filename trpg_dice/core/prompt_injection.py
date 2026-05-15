@@ -14,6 +14,40 @@ def _get_user_id(_ctx) -> str:
     return getattr(_ctx, 'from_user_id', getattr(_ctx, 'from_platform_userid', ''))
 
 
+def _summarize_knowledge_item(item: Any) -> str:
+    """将不同知识池条目格式统一压缩为提示词中的一行摘要。"""
+    if not isinstance(item, dict):
+        return str(item)
+
+    title = item.get("name") or item.get("title") or item.get("time") or item.get("event") or "条目"
+    summary = (
+        item.get("summary")
+        or item.get("description")
+        or item.get("event")
+        or item.get("background")
+        or item.get("role")
+        or item.get("location")
+        or ""
+    )
+
+    extras = []
+    if item.get("focus"):
+        extras.append(f"焦点: {item['focus']}")
+    if item.get("location") and item.get("location") != title:
+        extras.append(f"位置: {item['location']}")
+    if item.get("leads_to"):
+        extras.append(f"指向: {item['leads_to']}")
+    if item.get("san_loss"):
+        extras.append(f"SAN损失: {item['san_loss']}")
+
+    detail = str(summary).strip()
+    if extras:
+        detail = f"{detail} ({'；'.join(extras)})" if detail else "；".join(extras)
+    if len(detail) > 180:
+        detail = detail[:180] + "..."
+    return f"- {title}: {detail}" if detail else f"- {title}"
+
+
 async def inject_trpg_system_prompt(_ctx) -> str:
     """
     TRPG系统基础提示词注入
@@ -402,11 +436,17 @@ async def inject_document_context_prompt(_ctx, vector_db, store, enable_vector_d
                 keeper_pool = json.loads(keeper_data)
                 prompt_parts.append("## 🔴 守秘人知识池（不可告知玩家）")
                 for category, items in keeper_pool.items():
-                    if items:
+                    if category in ("summary", "background"):
+                        if items:
+                            text = str(items)
+                            if len(text) > 300:
+                                text = text[:300] + "..."
+                            prompt_parts.append(f"### {category}\n{text}")
+                    elif items:
                         prompt_parts.append(f"### {category}")
-                        for item in items:
-                            prompt_parts.append(f"- {item.get('title', '?')}: {item.get('summary', '')}")
-                            if item.get('spoiler_tags'):
+                        for item in items[:20]:
+                            prompt_parts.append(_summarize_knowledge_item(item))
+                            if isinstance(item, dict) and item.get('spoiler_tags'):
                                 prompt_parts.append(f"  ⚠️ 剧透: {', '.join(item['spoiler_tags'])}")
                 prompt_parts.append("")
 
@@ -414,10 +454,16 @@ async def inject_document_context_prompt(_ctx, vector_db, store, enable_vector_d
                 player_pool = json.loads(player_data)
                 prompt_parts.append("## 🟢 玩家知识池（已解锁/可描述）")
                 for category, items in player_pool.items():
-                    if items:
+                    if category in ("summary", "background"):
+                        if items:
+                            text = str(items)
+                            if len(text) > 300:
+                                text = text[:300] + "..."
+                            prompt_parts.append(f"### {category}\n{text}")
+                    elif items:
                         prompt_parts.append(f"### {category}")
-                        for item in items:
-                            prompt_parts.append(f"- {item.get('title', '?')}: {item.get('summary', '')}")
+                        for item in items[:20]:
+                            prompt_parts.append(_summarize_knowledge_item(item))
                 prompt_parts.append("")
 
             prompt_parts.append("💡 你可以使用 get_module_catalog() 查看完整目录，search_documents() 查询原始文档")
@@ -578,25 +624,6 @@ async def inject_interaction_style_prompt(_ctx) -> str:
 • 保持游戏的公平性和连续性
 • 适时提供必要的提示和指导，但不要直接给答案
 • 尊重玩家对角色的扮演和选择"""
-
-
-async def inject_session_history_prompt(_ctx, battle_report_manager) -> str:
-    """
-    历史战报记忆注入
-    注入上次跑团的战报摘要，作为游戏历史记忆
-    """
-    
-    try:
-        # 获取上次跑团的简要总结
-        summary = await battle_report_manager.get_last_session_summary(_ctx.chat_key)
-        
-        if summary:
-            return summary
-        else:
-            # 如果没有历史记录，返回空
-            return ""
-    except Exception:
-        return ""
 
 
 def register_prompt_injections(plugin, character_manager, vector_db, store, config, battle_report_manager):

@@ -29,7 +29,15 @@ class SessionRecord:
         # 玩家统计
         self.player_stats = {}  # {user_id: {char_name, total_rolls, success_count, critical_success, ...}}
     
-    def add_dice_roll(self, user_id: str, char_name: str, expression: str, result: int, is_critical: bool = False):
+    def add_dice_roll(
+        self,
+        user_id: str,
+        char_name: str,
+        expression: str,
+        result: int,
+        is_critical: bool = False,
+        critical_type: str = "",
+    ):
         """添加掷骰记录"""
         self.dice_rolls.append({
             "user_id": user_id,
@@ -37,6 +45,7 @@ class SessionRecord:
             "expression": expression,
             "result": result,
             "is_critical": is_critical,
+            "critical_type": critical_type,
             "timestamp": time.time()
         })
         
@@ -50,8 +59,10 @@ class SessionRecord:
             }
         
         self.player_stats[user_id]["total_rolls"] += 1
-        if is_critical:
+        if critical_type == "success" or (is_critical and not critical_type):
             self.player_stats[user_id]["critical_success"] += 1
+        elif critical_type == "failure":
+            self.player_stats[user_id]["critical_failure"] += 1
     
     def add_skill_check(self, user_id: str, char_name: str, skill: str, target: int, roll: int, success_level: str):
         """添加技能检定记录"""
@@ -326,6 +337,7 @@ class BattleReportGenerator:
             lines.append(f"   技能检定: {stats.get('successful_checks', 0)}/{stats.get('total_checks', 0)} 成功")
             lines.append(f"   行动次数: {stats.get('action_count', 0)}")
             lines.append(f"   大成功: {stats.get('critical_success', 0)} 次")
+            lines.append(f"   大失败: {stats.get('critical_failure', 0)} 次")
             lines.append("")
         
         # 游戏统计
@@ -410,6 +422,7 @@ class BattleReportGenerator:
             lines.append(f"| 技能检定成功率 | {stats.get('successful_checks', 0)}/{stats.get('total_checks', 0)} |")
             lines.append(f"| 行动次数 | {stats.get('action_count', 0)} |")
             lines.append(f"| 大成功次数 | {stats.get('critical_success', 0)} |")
+            lines.append(f"| 大失败次数 | {stats.get('critical_failure', 0)} |")
             lines.append("")
         
         # 游戏统计
@@ -518,16 +531,17 @@ class BattleReportManager:
             return True
         return False
 
-    async def start_session(self, chat_key: str, session_name: str = None) -> str:
+    async def start_session(self, chat_key: str, session_name: Optional[str] = None) -> str:
         """开始记录跑团"""
         return await self.generator.start_session(chat_key, session_name)
 
     async def add_dice_roll(self, chat_key: str, user_id: str, char_name: str,
-                           expression: str, result: int, is_critical: bool = False):
+                           expression: str, result: int, is_critical: bool = False,
+                           critical_type: str = ""):
         """记录掷骰"""
         record = await self.generator.get_current_session(chat_key)
         if record:
-            record.add_dice_roll(user_id, char_name, expression, result, is_critical)
+            record.add_dice_roll(user_id, char_name, expression, result, is_critical, critical_type)
             await self.generator.save_session(chat_key, record)
 
     async def add_skill_check(self, chat_key: str, user_id: str, char_name: str,
@@ -554,11 +568,11 @@ class BattleReportManager:
 
     async def generate_battle_report(self, chat_key: str) -> tuple:
         """生成并结束战报，返回: (纯文本战报, Markdown战报, 会话名称)"""
+        name_key = f"session_name.{chat_key}.current"
+        session_name = await self.store.get(store_key=name_key)
         record = await self.generator.end_session(chat_key)
         if not record:
             return None, None, None
-        name_key = f"session_name.{chat_key}.current"
-        session_name = await self.store.get(store_key=name_key)
         if not session_name:
             dt_str = datetime.fromtimestamp(record.start_time).strftime('%Y%m%d-%H%M')
             session_name = f"跑团-{dt_str}"
@@ -566,7 +580,7 @@ class BattleReportManager:
         markdown_report = self.generator.generate_markdown_report(record, session_name)
         return text_report, markdown_report, session_name
 
-    async def get_last_session_summary(self, chat_key: str) -> str:
+    async def get_last_session_summary(self, chat_key: str) -> Optional[str]:
         """获取上次跑团的简要总结，用于提示词注入"""
         latest_record = await self.generator.get_latest_history(chat_key)
         if not latest_record:

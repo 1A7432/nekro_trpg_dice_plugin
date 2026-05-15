@@ -56,19 +56,31 @@ class DiceResult:
             return f"{self.expression} = {roll_str} = {self.total}"
 
     def is_critical_success(self) -> bool:
-        """判断是否大成功 - 只在单骰检定时生效"""
+        """判断是否大成功 - 只在单骰检定时生效
+
+        d20 等常规检定通常以最大值为大成功；d100 百分骰（COC 常用）
+        以 01 为大成功。
+        """
         if not config.ENABLE_CRITICAL_EFFECTS:
             return False
         if not self.is_check or self.dice_count != 1:
             return False
+        if self.dice_sides == 100:
+            return any(roll == 1 for roll in self.rolls)
         return any(roll == self.dice_sides for roll in self.rolls)
 
     def is_critical_failure(self) -> bool:
-        """判断是否大失败 - 只在单骰检定时生效"""
+        """判断是否大失败 - 只在单骰检定时生效
+
+        d20 等常规检定通常以 1 为大失败；d100 百分骰（COC 常用）
+        以 100 为大失败。技能值相关的 96-100 规则由 COC 专用检定处理。
+        """
         if not config.ENABLE_CRITICAL_EFFECTS:
             return False
         if not self.is_check or self.dice_count != 1:
             return False
+        if self.dice_sides == 100:
+            return any(roll == 100 for roll in self.rolls)
         return any(roll == 1 for roll in self.rolls)
 
 

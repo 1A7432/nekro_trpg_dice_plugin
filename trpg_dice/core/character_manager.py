@@ -192,8 +192,15 @@ class CharacterTemplate:
                 # 如果是骰子表达式，进行掷骰
                 roll_result = DiceRoller.roll_expression(value["dice"])
                 character.attributes[attr] = roll_result.total
+            elif isinstance(value, (int, float, str)):
+                try:
+                    numeric_value = int(value)
+                except ValueError:
+                    character.notes = f"{character.notes}\n{attr}: {value}".strip()
+                else:
+                    character.attributes[attr] = numeric_value
             else:
-                character.attributes[attr] = value
+                character.notes = f"{character.notes}\n{attr}: {value}".strip()
 
         # 应用技能初始值
         for skill, value in self.skills.items():
@@ -209,9 +216,16 @@ class CharacterTemplate:
                     result = eval(calc_formula, {"__builtins__": {}})
                     character.skills[skill] = int(result)
                 except Exception:
-                    character.skills[skill] = value  # 保留原值
-            else:
+                    character.skills[skill] = 0
+            elif isinstance(value, int):
                 character.skills[skill] = value
+            elif isinstance(value, (float, str)):
+                try:
+                    character.skills[skill] = int(value)
+                except ValueError:
+                    character.skills[skill] = 0
+            else:
+                character.skills[skill] = 0
 
         # 计算衍生属性
         self._calculate_mappings(character)
@@ -540,7 +554,7 @@ class CharacterManager:
         # 同步到全队名册
         await self.sync_party_roster(chat_key, character)
 
-    async def sync_party_roster(self, chat_key: str, character: CharacterSheet, status_effects: list = None):
+    async def sync_party_roster(self, chat_key: str, character: CharacterSheet, status_effects: Optional[list] = None):
         """同步角色状态到全队名册（party_roster），供战情面板全团显示"""
         roster_key = f"party_roster.{chat_key}"
         try:
@@ -548,6 +562,12 @@ class CharacterManager:
             roster = json.loads(roster_data) if roster_data else {}
         except Exception:
             roster = {}
+
+        previous_status_effects = []
+        if status_effects is None:
+            previous = roster.get(character.name, {})
+            previous_status_effects = previous.get("status_effects", []) if isinstance(previous, dict) else []
+        effective_status_effects = status_effects if status_effects is not None else previous_status_effects
 
         attrs = character.attributes
         if character.system == "CoC":
@@ -558,7 +578,7 @@ class CharacterManager:
                 "SAN": f"{attrs.get('SAN', '?')}/{attrs.get('SANMAX', '?')}",
                 "MP": f"{attrs.get('MP', '?')}/{attrs.get('MPMAX', '?')}",
                 "occupation": character.occupation,
-                "status_effects": status_effects if status_effects else [],
+                "status_effects": effective_status_effects,
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
         else:
@@ -568,7 +588,7 @@ class CharacterManager:
                 "system": character.system,
                 "HP": f"{attrs.get('HP', '?')}",
                 "AC": sec.get('护甲等级', '?'),
-                "status_effects": status_effects if status_effects else [],
+                "status_effects": effective_status_effects,
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
 
@@ -754,7 +774,7 @@ class CharacterManager:
         if not ability:
             # 如果技能本身就是属性名
             if standard_skill in ["力量", "敏捷", "体质", "智力", "感知", "魅力"]:
-                ability = self.DND5E_ABILITY_NAMES.get(standard_skill, standard_skill)
+                ability = standard_skill
             elif standard_skill in self.DND5E_ABILITY_NAMES:
                 ability = standard_skill
             else:

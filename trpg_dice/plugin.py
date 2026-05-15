@@ -15,6 +15,7 @@ import uuid
 import asyncio
 
 from nonebot.adapters.onebot.v11 import Bot, Message, MessageEvent
+from nonebot.exception import MatcherException
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
 from pydantic import BaseModel, Field
@@ -391,7 +392,7 @@ COC_ATTRIBUTE_NAMES = {"STR", "CON", "SIZ", "DEX", "APP", "INT", "POW", "EDU", "
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.AGENT, "skill_check", "角色技能检定")
-async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: int = 0, dc: int = None, proficient: bool = False) -> str:
+async def skill_check(_ctx: AgentCtx, skill_name: str, bonus: int = 0, penalty: int = 0, dc: Optional[int] = None, proficient: bool = False) -> str:
     """
     对当前角色进行技能检定（支持属性名和信用评级自动识别）
 
@@ -1176,7 +1177,7 @@ async def update_character_status(_ctx: AgentCtx, status_effects: str) -> str:
     Args:
         status_effects: JSON 字符串列表，如 '["中毒(每回合1HP)", "恐惧(SAN-10)", "手臂受伤(无法持盾)"]'
     """
-    user_id = _get_user_id(_ctx)
+    user_id = (getattr(_ctx, 'from_user_id', None) or getattr(_ctx, 'from_platform_userid', None) or '')
     chat_key = _ctx.chat_key
     try:
         effects = json.loads(status_effects)
@@ -1338,7 +1339,7 @@ async def skill_growth(_ctx: AgentCtx, skill_name: str) -> str:
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.AGENT, "opposed_check", "对抗检定")
-async def opposed_check(_ctx: AgentCtx, skill1: str, skill2: str, skill1_value: int = None, skill2_value: int = None) -> str:
+async def opposed_check(_ctx: AgentCtx, skill1: str, skill2: str, skill1_value: Optional[int] = None, skill2_value: Optional[int] = None) -> str:
     """
     COC7对抗检定
 
@@ -1471,7 +1472,7 @@ async def hp_manager(_ctx: AgentCtx, action: str, value: int = 0) -> str:
 
 
 @plugin.mount_sandbox_method(SandboxMethodType.BEHAVIOR, "initiative_tracker", "先攻管理")
-async def initiative_tracker(_ctx: AgentCtx, action: str, name: str = None, initiative: int = None) -> str:
+async def initiative_tracker(_ctx: AgentCtx, action: str, name: Optional[str] = None, initiative: Optional[int] = None) -> str:
     """
     先攻追踪管理
 
@@ -2271,12 +2272,11 @@ async def handle_skill_check(matcher: Matcher, event: MessageEvent, arg: Message
         
         await finish_with(matcher, response)
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        if "FinishedException" in str(type(e)):
-            raise
-        else:
-            await finish_with(matcher, f"❌ 检定失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+    return
 
 
 @on_command("rah", aliases={"rahide"}, priority=5, block=True).handle()
@@ -2359,12 +2359,11 @@ async def handle_hidden_skill_check(matcher: Matcher, event: MessageEvent, arg: 
         
         await finish_with(matcher, response)
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        if "FinishedException" in str(type(e)):
-            raise
-        else:
-            await finish_with(matcher, f"❌ 检定失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+    return
 
 
 @on_command("rav", aliases={"ravs"}, priority=5, block=True).handle()
@@ -2444,12 +2443,11 @@ async def handle_opposed_check(matcher: Matcher, event: MessageEvent, arg: Messa
         )
         await finish_with(matcher, response)
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        if "FinishedException" in str(type(e)):
-            raise
-        else:
-            await finish_with(matcher, f"❌ 对抗检定失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 对抗检定失败: {str(e)}")
+    return
 
 
 # ============ 角色卡管理命令 ============
@@ -2491,11 +2489,10 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
                 response += "\n"
             
             await finish_with(matcher, response)
+        except MatcherException:
+            raise
         except Exception as get_error:
-            if "FinishedException" in str(type(get_error)):
-                raise
-            else:
-                await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
+            await finish_with(matcher, f"❌ 获取角色卡失败: {str(get_error)}")
         return
     
     elif command.startswith("new "):
@@ -2515,11 +2512,10 @@ async def handle_character_sheet(matcher: Matcher, event: MessageEvent, arg: Mes
             character = CharacterSheet(name=char_name)
             await character_manager.save_character(user_id, chat_key, character)
             await finish_with(matcher, f"✅ 已创建角色: {char_name}")
+        except MatcherException:
+            raise
         except Exception as save_error:
-            if "FinishedException" in str(type(save_error)):
-                raise
-            else:
-                await finish_with(matcher, f"❌ 保存角色失败: {str(save_error)}")
+            await finish_with(matcher, f"❌ 保存角色失败: {str(save_error)}")
         return
     
     elif command.startswith("set "):
@@ -2994,12 +2990,11 @@ async def handle_dnd_check(matcher: Matcher, event: MessageEvent, arg: Message =
         
         await finish_with(matcher, response)
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        if "FinishedException" in str(type(e)):
-            raise
-        else:
-            await finish_with(matcher, f"❌ 检定失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 检定失败: {str(e)}")
+    return
 
 
 @on_command("save", aliases={"savingthrow"}, priority=5, block=True).handle()
@@ -3030,8 +3025,8 @@ async def handle_dnd_save(matcher: Matcher, event: MessageEvent, arg: Message = 
         
         # 映射中文属性到英文
         ability_map = {"力量": "STR", "敏捷": "DEX", "体质": "CON", "智力": "INT", "感知": "WIS", "魅力": "CHA"}
-        ability_key = ability_map.get(ability, ability)
-        
+        ability_key = ability_map.get(ability, ability) or ability
+
         # 计算豁免加值
         modifier = character_manager.get_dnd_saving_throw_modifier(character, ability_key, proficient)
         
@@ -3059,12 +3054,11 @@ async def handle_dnd_save(matcher: Matcher, event: MessageEvent, arg: Message = 
         
         await finish_with(matcher, response)
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        if "FinishedException" in str(type(e)):
-            raise
-        else:
-            await finish_with(matcher, f"❌ 豁免检定失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 豁免检定失败: {str(e)}")
+    return
 
 
 # ============ 战斗与先攻指令 ============
@@ -3513,13 +3507,11 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Messa
             await finish_with(matcher, response)
             return
             
+        except MatcherException:
+            raise
         except Exception as e:
-            # 检查是否是FinishedException，如果是则让它正常传播
-            if "FinishedException" in str(type(e)):
-                raise  # 重新抛出FinishedException
-            else:
-                await finish_with(matcher, f"❌ 获取文档列表失败: {str(e)}")
-            return
+            await finish_with(matcher, f"❌ 获取文档列表失败: {str(e)}")
+        return
     
     elif command.startswith("search "):
         # 搜索文档
@@ -3547,13 +3539,11 @@ async def handle_document_help(matcher: Matcher, event: MessageEvent, arg: Messa
             await finish_with(matcher, response)
             return
             
+        except MatcherException:
+            raise
         except Exception as e:
-            # 检查是否是FinishedException，如果是则让它正常传播
-            if "FinishedException" in str(type(e)):
-                raise  # 重新抛出FinishedException
-            else:
-                await finish_with(matcher, f"❌ 搜索失败: {str(e)}")
-            return
+            await finish_with(matcher, f"❌ 搜索失败: {str(e)}")
+        return
     
     else:
         # 显示帮助
@@ -3626,13 +3616,11 @@ async def handle_upload_text_document(matcher: Matcher, event: MessageEvent, arg
         init_msg = "\n🔄 后台正在初始化模组知识池..." if (config.MODULE_INIT_AUTO_START and doc_type in ("module", "story")) else ""
         await finish_with(matcher, f"✅ {doc_emoji} 文档 \"{filename}\" 上传成功！\n📊 已分割为 {chunk_count} 个片段{init_msg}")
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        # 检查是否是FinishedException，如果是则让它正常传播
-        if "FinishedException" in str(type(e)):
-            raise  # 重新抛出FinishedException
-        else:
-            await finish_with(matcher, f"❌ 上传失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 上传失败: {str(e)}")
+    return
 
 
 @on_command("ask", aliases={"问答", "询问", "qa"}, priority=5, block=True).handle()
@@ -3655,13 +3643,11 @@ async def handle_document_qa(matcher: Matcher, event: MessageEvent, arg: Message
         
         await finish_with(matcher, f"🤖 AI回答:\n{answer}")
         return
+    except MatcherException:
+        raise
     except Exception as e:
-        # 检查是否是FinishedException，如果是则让它正常传播
-        if "FinishedException" in str(type(e)):
-            raise  # 重新抛出FinishedException
-        else:
-            await finish_with(matcher, f"❌ 问答失败: {str(e)}")
-        return
+        await finish_with(matcher, f"❌ 问答失败: {str(e)}")
+    return
 
 
 # ============ 其他实用命令 ============
@@ -3703,12 +3689,10 @@ async def handle_daily_luck(matcher: Matcher, event: MessageEvent):
             level = "非洲人"
         
         await finish_with(matcher, f"🍀 今日人品值: {luck_value} ({level})")
+    except MatcherException:
+        raise
     except Exception as e:
-        # 检查是否是FinishedException，如果是则让它正常传播
-        if "FinishedException" in str(type(e)):
-            raise  # 重新抛出FinishedException
-        else:
-            await finish_with(matcher, f"❌ 获取人品失败: {str(e)}")
+        await finish_with(matcher, f"❌ 获取人品失败: {str(e)}")
 
 
 @on_command("help", priority=5, block=True).handle()
@@ -3835,11 +3819,10 @@ async def handle_session(matcher: Matcher, event: MessageEvent, arg: Message = C
             response = text_report + f"\n\n📄 Markdown战报已生成: {filename}\n💡 请告诉AI获取Markdown战报文档"
             await finish_with(matcher, response)
             
+        except MatcherException:
+            raise
         except Exception as e:
-            if "FinishedException" in str(type(e)):
-                raise
-            else:
-                await finish_with(matcher, f"❌ 生成战报失败: {str(e)}")
+            await finish_with(matcher, f"❌ 生成战报失败: {str(e)}")
         return
     
     elif command.startswith("event"):

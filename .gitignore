@@ -168,7 +168,10 @@ temp/
 *.tmp
 .DS_Store
 
-# Test files
+# Test files - ignore stray test scripts but keep repository tests/ directory
 test_*.py
-tests/
+# tests/   # repository tests are tracked; uncomment to ignore again
 *_test.py
+# Un-ignore tests inside the repository tests/ directory
+!tests/test_*.py
+!tests/*_test.py
