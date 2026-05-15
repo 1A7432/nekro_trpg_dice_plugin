@@ -1,5 +1,7 @@
 # TRPG Dice Plugin for Nekro Agent
 
+[English](README_EN.md) | 中文
+
 完整的TRPG骰子系统插件，支持多种TRPG规则和复杂表达式，为跑团提供全面的工具支持。集成AI智能主持人功能，可自动担任KP/DM角色，提供角色扮演、剧情推进、规则判定等专业主持服务。
 
 ## 🎯 主要功能
